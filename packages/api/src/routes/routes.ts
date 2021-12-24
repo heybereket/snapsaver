@@ -2,6 +2,11 @@ import { FastifyPluginCallback } from "fastify";
 import fs from "fs";
 import axios from "axios";
 import path from "path";
+import * as z from "zod";
+
+const schema = z.object({
+  link: z.string(),
+});
 
 const downloadMemoryFile = (url: string, dir: string, fileName: string) => {
   // TODO: Check if file already exists
@@ -59,8 +64,8 @@ const routes: FastifyPluginCallback = async (fastify) => {
     });
   });
 
-  fastify.post("/download", async (req: any, res) => {
-    const { link } = req.body;
+  fastify.post("/download", async (req, res) => {
+    const { link } = schema.parse(req.body);
 
     downloadMemory(link, "images", "test.mp4");
 
