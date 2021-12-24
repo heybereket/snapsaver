@@ -1,0 +1,27 @@
+{
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --poll --exit-child --transpile-only ./src/server.ts",
+    "build": "prisma migrate deploy && tsc",
+    "start": "node dist/server.js",
+    "prisma:push": "prisma db push",
+    "prisma:generate": "prisma generate",
+    "prisma:format": "prisma format",
+    "prisma:mix": "prismix && prisma format",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "colorette": "^2.0.16",
+    "dotenv": "^10.0.0",
+    "fastify": "^3.25.2",
+    "fastify-autoload": "^3.9.0",
+    "fastify-cors": "^6.0.2",
+    "prisma": "^3.7.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^3.7.0",
+    "@types/node": "^17.0.4",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.5.4"
+  }
+}
