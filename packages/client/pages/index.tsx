@@ -15,9 +15,20 @@ const Home: NextPage = () => {
   return (
     <Container className={`md:mt-4 flex-col`}>
       <div
-        className={`px-7 py-6 bg-dark-lighter rounded-lg flex flex-col md:flex-row md:items-center`}
+        className={`px-7 py-8 bg-dark-lighter rounded-lg flex flex-col md:flex-row md:items-center md:justify-center`}
       >
-        wip
+        <div className="flex items-center justify-between h-24 text-white rounded-lg shadow-md">
+          <img
+            className="md:block hidden h-full py-2 pr-4 ml-8"
+            src="/assets/snapsaver-logo.png"
+          ></img>
+          <div className="flex flex-col px-2">
+            <p className="text-4xl md:text-6xl font-bold text-primary">Snapsaver</p>
+            <span className="md:text-1xl text-secondary">
+              Download your Snapchat memories
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className={`mt-3 grid grid-cols-12`}>

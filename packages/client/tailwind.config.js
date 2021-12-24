@@ -14,10 +14,8 @@ module.exports = {
             'dark-tertiary': '#0C111B',
             'dark-lighter': '#141923',
             'dark-text': '#f9f8ff',
-            'dark-link': '#8ad6f1',
-            primary: {
-              100: "var(--color-primary-100)",
-            }
+            'primary': '#FED8B1',
+            'secondary': 'var(--color-primary-100)',
           },
           boxShadow: {
             outline: '0 0 0.5pt 0.5pt white',
