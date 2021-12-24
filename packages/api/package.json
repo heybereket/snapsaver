@@ -11,6 +11,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "aws-sdk": "^2.1048.0",
     "colorette": "^2.0.16",
     "dotenv": "^10.0.0",
     "fastify": "^3.25.2",
