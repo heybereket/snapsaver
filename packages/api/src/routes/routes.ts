@@ -1,39 +1,57 @@
 import { FastifyPluginCallback } from "fastify";
+import fs from "fs";
+import axios from "axios";
+import path from "path";
 
-const fs = require("fs");
-const request = require("request");
-const path = require("path");
-
-const downloadThis = (uri: string, dir: string, fileName: string) => {
+const downloadMemoryFile = (url: string, dir: string, fileName: string) => {
   // TODO: Check if file already exists
 
   new Promise<void>((resolve, reject) => {
     // Make direcotry if it doesn't exist
     fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join('./', dir, fileName)
+    const filePath = path.join("./", dir, fileName);
+    const writer = fs.createWriteStream(filePath);
 
-    request.post({
-      uri,
+    axios({
+      method: "get",
+      url,
+      responseType: "stream",
+    }).then((res) => {
+      return new Promise<void>((resolve, reject) => {
+        res.data.pipe(writer);
+        writer.on("finish", () => {
+          console.log(`The file is finished downloading: ${fileName}.`);
+          resolve();
+        });
+        writer.on("error", (error) => {
+          reject(error);
+        });
+      }).catch((error) => {
+        console.log(
+          `Something happened while downloading ${fileName}: ${error}`
+        );
+      });
+    });
+  });
+};
+
+const downloadMemory = (url: string, dir: string, fileName: string) => {
+  new Promise<void>((resolve, reject) => {
+    axios({
+      method: "post",
+      url,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-    })
-    .pipe(fs.createWriteStream(filePath))
-    .on('finish', () => {
-        console.log(`The file is finished downloading: ${fileName}.`);
-        resolve();
-    })
-    .on('error', (error) => {
-        reject(error);
-    })
-  })
-  .catch(error => {
-    console.log(`Something happened while downloading ${fileName}: ${error}`);
+    }).then((res) => {
+      const memoryURL = res.data;
+      downloadMemoryFile(memoryURL, dir, fileName);
+    });
   });
-}
+};
 
 // TODO: Queueing for downloads?
-const hi: FastifyPluginCallback = async (fastify) => {
+const routes: FastifyPluginCallback = async (fastify) => {
   fastify.get("/ping", async (req, res) => {
     await res.send({
       success: true,
@@ -41,11 +59,10 @@ const hi: FastifyPluginCallback = async (fastify) => {
     });
   });
 
-  // TODO: Switch from GET to POST
-  fastify.get("/download", async (req: any, res) => {
-    const { link } = req.query
+  fastify.post("/download", async (req: any, res) => {
+    const { link } = req.body;
 
-    await downloadThis(link, 'images', 'test.jpg')
+    downloadMemory(link, "images", "test.mp4");
 
     await res.send({
       success: true,
@@ -54,4 +71,4 @@ const hi: FastifyPluginCallback = async (fastify) => {
   });
 };
 
-export default hi;
+export default routes;
