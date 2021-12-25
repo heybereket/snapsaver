@@ -10,7 +10,13 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({ message: "pong" });
   });
 
-  fastify.post("/upload/memories", async (req: any, res) => {
+  // Made GET as testing POST request ain't working on iPad
+  fastify.get("/local/upload/file", async (req: any, res) => {
+    SnapSaver.uploadMemoriesJsonLocal();
+    await res.send({ message: "done" });
+  })
+
+  fastify.post("/upload/file", async (req: any, res) => {
     const options = { limits: { fileSize: 1000 } };
     const data = await req.file(options)
     SnapSaver.uploadMemoriesJson(data)
@@ -19,12 +25,11 @@ const routes: FastifyPluginCallback = async (fastify) => {
   })
 
   fastify.get("/download/memories", async (req, res) => {
-    const fileContents = SnapSaver.getMemoriesJson();
-    SnapSaver.downloadAllMemories();
+    const { memories } = await SnapSaver.downloadAllMemories();
 
     await res.send({
-      data: fileContents,
-      isMemoriesJsonValid: SnapSaver.validateMemoriesJson(fileContents)
+      data: memories,
+      isMemoriesJsonValid: SnapSaver.validateMemoriesJson(memories)
     });
   })
 

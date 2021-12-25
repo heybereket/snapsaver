@@ -3,21 +3,20 @@ import axios from "axios";
 import fs from "fs";
 import pump from "pump";
 import * as z from "zod";
-import aws from 'aws-sdk';
+import { S3 } from "./connections/aws";
+import { IS_PRODUCTION } from "./constants";
 
-aws.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: "us-east-1",
-});
+enum FILE_TYPE {
+  "MEMORY",
+  "JSON"
+}
 
 class SnapSaver {
   constructor() {}
 
-  getMemoriesJson = () => {
+  getMemoriesJsonLocal = () => {
     // TODO: Split this up to local (from file system) and production (from S3)
-    const filePath = "/workspaces/snapsaver/packages/api/data/memories_history.json";
-    // const filePath = "C:/Users/Owner/Documents/projects/snapsaver/packages/api/data/memories_history.json";
+    const filePath = this.getAbsolutePath("data", "memories_history.json");
     return require(filePath);
   };
 
@@ -39,6 +38,30 @@ class SnapSaver {
       console.error(err);
       return false;
     }
+  };
+
+  // TODO: Move to util
+  getAbsolutePath = (dir, fileName) => {
+    const relativePath = path.join("./", dir, fileName);
+    return path.resolve(relativePath);
+  };
+
+  getUserEmail = () => {
+    // TODO: Add OAuth
+    return IS_PRODUCTION
+      ? "asemagn@gmail.com"
+      : (process.env.DEV_USER_EMAIL as string);
+  };
+
+  uploadMemoriesJsonLocal = async () => {
+    const fileName = "memories_history.json";
+
+    this.uploadFileToS3(
+      this.getAbsolutePath("data", fileName),
+      fileName,
+      this.getUserEmail(),
+      FILE_TYPE.JSON
+    );
   };
 
   uploadMemoriesJson = async (data: any) => {
@@ -88,10 +111,12 @@ class SnapSaver {
           writer.on("finish", () => {
             console.log(`The file is finished downloading: ${fileName}.`);
 
-            // TODO: Upload files under directory by user email
-            const userEmail = "asemagn@gmail.com";
-
-            this.uploadFileToS3('/workspaces/snapsaver/packages/api/images/2021-12-23 18-45-16 UTC.mp4', fileName, userEmail);
+            this.uploadFileToS3(
+              this.getAbsolutePath("images", fileName),
+              fileName,
+              this.getUserEmail(),
+              FILE_TYPE.MEMORY
+            );
 
             resolve();
           });
@@ -107,25 +132,64 @@ class SnapSaver {
     });
   };
 
-  uploadFileToS3 = async (localFilePath: string, fileName: string, email: string) => {
+  getS3FileDir = (email: string, type: FILE_TYPE) => {
+    return path.join(
+      "./",
+      "users",
+      email,
+      type == FILE_TYPE.MEMORY ? "memories" : ""
+    );
+  };
+
+  getMemoriesJsonFromS3 = async () => {
+    const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.JSON);
+    const s3FilePath = path.join(fileDir, "memories_history.json");
+    console.log("filePath", s3FilePath);
+
+    const options = {
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Key: s3FilePath,
+      // ResponseContentType : 'application/json'
+    };
+
+    try {
+      const data = await S3.getObject(options).promise();
+      const fileContents = data.Body.toString();
+      return JSON.parse(fileContents);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  uploadFileToS3 = async (
+    localFilePath: string,
+    fileName: string,
+    email: string,
+    type: FILE_TYPE
+  ) => {
     fs.readFile(localFilePath, async (err, data) => {
       if (err) throw err;
-      const s3FilePath = path.join("./", "users", email, "memories", fileName);
+      const filePath = this.getS3FileDir(email, type);
+      const s3FilePath = path.join(filePath, fileName);
 
       // TODO: Re-evaluate security of S3
-      new aws.S3().upload({
+      const options = {
         Bucket: process.env.AWS_BUCKET_NAME as string,
         Key: s3FilePath,
         Body: data,
-      }, (s3Err, data) => {
+      };
+
+      S3.upload(options, (s3Err, data) => {
         if (s3Err) throw s3Err;
         console.log(`File uploaded to S3 successfully: ${data.Location}`);
       });
     });
   };
 
-  downloadAllMemories = () => {
-    const memories = this.getMemoriesJson();
+  downloadAllMemories = async () => {
+    // TODO: Check if file exists
+    const memories = await this.getMemoriesJsonFromS3();
+    console.log("memories_history.json", memories);
 
     memories["Saved Media"].forEach((memory) => {
       const url = memory["Download Link"];
@@ -134,8 +198,10 @@ class SnapSaver {
         memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
       }`;
 
-      this.downloadMemoryLink(url, dir, fileName.replaceAll(':', '-'));
+      this.downloadMemoryLink(url, dir, fileName.replaceAll(":", "-"));
     });
+
+    return { memories };
   };
 }
 
