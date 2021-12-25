@@ -8,7 +8,7 @@ import { IS_PRODUCTION } from "./constants";
 
 enum FILE_TYPE {
   "MEMORY",
-  "JSON"
+  "JSON",
 }
 
 class SnapSaver {
@@ -132,21 +132,17 @@ class SnapSaver {
         }
       });
     });
-  }
+  };
 
   getS3FileDir = (email: string, type: FILE_TYPE) => {
-    return path.join(
-      "./",
-      "users",
-      email,
-      type == FILE_TYPE.MEMORY ? "memories" : ""
+    return (
+      "users" + "/" + email + (type == FILE_TYPE.MEMORY ? "/memories" : "")
     );
   };
 
   getMemoriesJsonFromS3 = async () => {
     const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.JSON);
     const s3FilePath = path.join(fileDir, "memories_history.json");
-    console.log("filePath", s3FilePath);
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -156,8 +152,8 @@ class SnapSaver {
 
     try {
       const data = await S3.getObject(options).promise();
-      const fileContents = data.Body.toString();
-      return JSON.parse(fileContents);
+      const fileContents = data.Body?.toString();
+      return fileContents ? JSON.parse(fileContents) : null;
     } catch (err) {
       console.error(err);
     }
@@ -172,7 +168,7 @@ class SnapSaver {
     fs.readFile(localFilePath, async (err, data) => {
       if (err) throw err;
       const filePath = this.getS3FileDir(email, type);
-      const s3FilePath = path.join(filePath, fileName);
+      const s3FilePath = filePath + "/" + fileName;
 
       // TODO: Re-evaluate security of S3
       const options = {
@@ -191,7 +187,6 @@ class SnapSaver {
   downloadAllMemories = async () => {
     // TODO: Check if file exists
     const memories = await this.getMemoriesJsonFromS3();
-    console.log("memories_history.json", memories);
 
     memories["Saved Media"].forEach((memory) => {
       const url = memory["Download Link"];
