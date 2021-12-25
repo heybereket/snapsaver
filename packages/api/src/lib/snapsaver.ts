@@ -81,28 +81,30 @@ class SnapSaver {
         method: "get",
         url,
         responseType: "stream",
-      }).then((res) => {
-        return new Promise<void>((resolve, reject) => {
-          // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
-          res.data.pipe(writer);
-          writer.on("finish", () => {
-            console.log(`The file is finished downloading: ${fileName}.`);
+      }).then(async (res) => {
+        try {
+          return await new Promise<void>((resolve, reject) => {
+            // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
+            res.data.pipe(writer);
+            writer.on("finish", () => {
+              console.log(`The file is finished downloading: ${fileName}.`);
 
-            // TODO: Upload files under directory by user email
-            const userEmail = "asemagn@gmail.com";
+              // TODO: Upload files under directory by user email
+              const userEmail = "asemagn@gmail.com";
 
-            this.uploadFileToS3('/workspaces/snapsaver/packages/api/images/2021-12-23 18-45-16 UTC.mp4', fileName, userEmail);
+              this.uploadFileToS3('/workspaces/snapsaver/packages/api/images/2021-12-23 18-45-16 UTC.mp4', fileName, userEmail);
 
-            resolve();
+              resolve();
+            });
+            writer.on("error", (error) => {
+              reject(error);
+            });
           });
-          writer.on("error", (error) => {
-            reject(error);
-          });
-        }).catch((error) => {
+        } catch (error_1) {
           console.log(
-            `Something happened while downloading ${fileName}: ${error}`
+            `Something happened while downloading ${fileName}: ${error_1}`
           );
-        });
+        }
       });
     });
   };
