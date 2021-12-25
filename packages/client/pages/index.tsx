@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
 import Image from "next/image";
+import axios from "axios";
 
 export const Container = (props: any) => {
   return (
@@ -25,6 +26,32 @@ const Title = (props: any) => {
 };
 
 const Home: NextPage = () => {
+  const JSONHandler = async (e: any) => {
+    const form = new FormData();
+    form.append("image", e.target.files?.[0] as string);
+
+    await axios
+      .post("http://localhost:8080/v1/upload/file", form, {
+        withCredentials: true,
+        headers: {
+          "Content-Type": `multipart/form-data`,
+        },
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
+
+  const DownloadHandler = async () => {
+    await axios
+      .get("http://localhost:8080/v1/download/memories", {
+        withCredentials: true,
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
+
   return (
     <Container className={`md:mt-4  place-items-center h-screen`}>
       <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col md:flex-row md:items-center md:justify-center">
@@ -58,7 +85,7 @@ const Home: NextPage = () => {
         <div
           className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:mr-4 md:col-span-6 xl:col-span-5 2xl:col-span-6`}
         >
-           <Title number="1" title="Request your data" />
+          <Title number="1" title="Request your data" />
 
           <span className="ml-7">
             Go to{" "}
@@ -81,14 +108,15 @@ const Home: NextPage = () => {
           <Title number="2" title="Upload your JSON" />
 
           <span className="ml-9 mb-3">
-            Unzip the <Codeblock content="mydata-{bunch of numbers}.zip" /> file,
-            then open the <Codeblock content="json" /> folder. Select{" "}
+            Unzip the <Codeblock content="mydata-{bunch of numbers}.zip" />{" "}
+            file, then open the <Codeblock content="json" /> folder. Select{" "}
             <Codeblock content="memories_history.json" /> and upload it below.
           </span>
 
           <div className="mb-3 w-96 ml-9">
             <input
               className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
+              onChange={JSONHandler}
               type="file"
             />
           </div>
@@ -99,14 +127,19 @@ const Home: NextPage = () => {
         <div
           className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:mr-4 md:col-span-6 xl:col-span-5 2xl:col-span-6`}
         >
-           <Title number="3" title="Start the process" />
+          <Title number="3" title="Start the process" />
 
-           <span className="ml-9 mb-3">
-            Click <Codeblock content="start" /> to initiate processing your memories. We&apos;ll download your files on our end and send you an email when they&apos;re ready to be exported.
+          <span className="ml-9 mb-3">
+            Click <Codeblock content="start" /> to initiate processing your
+            memories. We&apos;ll download your files on our end and send you an
+            email when they&apos;re ready to be exported.
           </span>
 
-          <div className="mb-3 w-96 ml-9">
-            <button className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black">
+          <div className="mb-3 w auto ml-9">
+            <button
+              className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
+              onClick={DownloadHandler}
+            >
               Start -&gt;
             </button>
           </div>
@@ -114,7 +147,7 @@ const Home: NextPage = () => {
         <div
           className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:col-span-6 xl:col-span-7 2xl:col-span-6`}
         >
-           <Title number="4" title="Your files are ready" />
+          <Title number="4" title="Your files are ready" />
 
           <div className="mb-3 w-96 ml-9">
             <button className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black">

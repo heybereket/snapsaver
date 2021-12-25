@@ -66,7 +66,6 @@ class SnapSaver {
 
   uploadMemoriesJson = async (data: any, email: string) => {
     const buffer = await data.toBuffer();
-    console.log(email)
 
     this.uploadFileToS3(
       buffer,
