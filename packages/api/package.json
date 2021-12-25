@@ -11,6 +11,8 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@types/archiver": "^5.1.1",
+    "archiver": "^5.3.0",
     "aws-sdk": "^2.1048.0",
     "axios": "^0.24.0",
     "colorette": "^2.0.16",

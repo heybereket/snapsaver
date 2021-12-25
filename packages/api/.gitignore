@@ -2,3 +2,4 @@
 /images
 .env
 yarn-error.log
+/temp

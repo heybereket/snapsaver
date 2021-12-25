@@ -5,10 +5,12 @@ import pump from "pump";
 import * as z from "zod";
 import { S3 } from "./connections/aws";
 import { IS_PRODUCTION } from "./constants";
+import { object } from "zod";
+import archiver from "archiver";
 
 enum FILE_TYPE {
   "MEMORY",
-  "JSON",
+  "REGULAR",
 }
 
 class SnapSaver {
@@ -60,7 +62,7 @@ class SnapSaver {
       this.getAbsolutePath("data", fileName),
       fileName,
       this.getUserEmail(),
-      FILE_TYPE.JSON
+      FILE_TYPE.REGULAR
     );
   };
 
@@ -71,11 +73,11 @@ class SnapSaver {
       buffer,
       "memories_history.json",
       email,
-      FILE_TYPE.JSON
+      FILE_TYPE.REGULAR
     );
   };
 
-  downloadMemoryLink = (url: string, dir: string, fileName: string) => {
+  getDownloadLinkFromSnapchat = (url: string, dir: string, fileName: string) => {
     new Promise<void>((resolve, reject) => {
       axios({
         method: "post",
@@ -85,7 +87,7 @@ class SnapSaver {
         },
       }).then((res) => {
         const memoryURL = res.data;
-        this.downloadMemoryFile(memoryURL, dir, fileName);
+        this.downloadFileFromSnapchat(memoryURL, dir, fileName);
       });
     });
   };
@@ -93,7 +95,7 @@ class SnapSaver {
   // TODO: Add meta data to image? So it can be filtered by date
   // TODO: Decide naming scheme for files
   // TODO: What to do if memories download fails midway
-  downloadMemoryFile = (url: string, dir: string, fileName: string) => {
+  downloadFileFromSnapchat = (url: string, dir: string, fileName: string) => {
     // TODO: Check if file already exists
 
     new Promise<void>((resolve, reject) => {
@@ -143,7 +145,7 @@ class SnapSaver {
   };
 
   getMemoriesJsonFromS3 = async () => {
-    const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.JSON);
+    const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.REGULAR);
     const s3FilePath = fileDir + "/memories_history.json";
 
     const options = {
@@ -161,13 +163,18 @@ class SnapSaver {
     }
   };
 
-  uploadLocalFileToS3 = (localFilePath: string, fileName: string, email: string, type: FILE_TYPE) => {
+  uploadLocalFileToS3 = (
+    localFilePath: string,
+    fileName: string,
+    email: string,
+    type: FILE_TYPE
+  ) => {
     fs.readFile(localFilePath, async (err, data) => {
       if (err) throw err;
 
-      this.uploadFileToS3(data, fileName, email, type)
+      this.uploadFileToS3(data, fileName, email, type);
     });
-  }
+  };
 
   uploadFileToS3 = async (
     data: any,
@@ -202,10 +209,125 @@ class SnapSaver {
         memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
       }`;
 
-      this.downloadMemoryLink(url, dir, fileName.replaceAll(":", "-"));
+      this.getDownloadLinkFromSnapchat(url, dir, fileName.replaceAll(":", "-"));
     });
 
     return { memories };
+  };
+
+  getS3DownloadLink = (fileKey: string) => {
+    const options = {
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Key: fileKey,
+    };
+
+    const url = S3.getSignedUrl("getObject", options);
+    console.log(url);
+    return url;
+  };
+
+  // List of URLs to download the files from S3
+  getMemoriesDownloadLinks = async () => {
+    const dir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.MEMORY) + "/";
+
+    const options = {
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Prefix: dir,
+    };
+
+    // TODO: Handle not-found cases
+    const objects = await S3.listObjectsV2(options).promise();
+    return objects["Contents"]?.map((object) => {
+      return this.getS3DownloadLink(object["Key"] || "");
+    });
+  };
+
+  // TODO: This function is redudant rn but will use in re-factor
+  startZipMemories = () => {
+    return this.downloadAllFilesFromS3();
+  };
+
+  zipDirectory = (sourceDir: string, outPath: string) => {
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    const stream = fs.createWriteStream(outPath);
+
+    return new Promise<void>((resolve, reject) => {
+      archive
+        .directory(sourceDir, false)
+        .on("error", (err) => reject(err))
+        .pipe(stream);
+
+      stream.on("close", () => resolve());
+      archive.finalize();
+    });
+  };
+
+  getObjectsInS3Directory = async () => {
+    const s3Dir =
+      this.getS3FileDir(this.getUserEmail(), FILE_TYPE.MEMORY) + "/";
+
+    const options = {
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Prefix: s3Dir,
+    };
+
+    // TODO: Handle not-found cases
+    return await S3.listObjectsV2(options).promise();
+  };
+
+  // Download a single file from S3
+  downloadFileFromS3 = async (dir, fileKey) => {
+    console.log("Trying to download file from S3", fileKey);
+
+    const fileName = path.basename(fileKey);
+    const destPath = dir + "/" + fileName;
+
+    const readStream = S3.getObject({
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Key: fileKey,
+    }).createReadStream();
+
+    const writeStream = fs.createWriteStream(destPath);
+    readStream.pipe(writeStream);
+  };
+
+  // This just does it recurssively
+  downloadAllFilesFromS3 = async () => {
+    // Get list of files in users memory directory
+    const objects = await this.getObjectsInS3Directory();
+    if (objects["Contents"]?.length == 0) {
+      return "no files found";
+    }
+
+    // Create directories for downloading memories and saving Zip file
+    const downloadDir = "./temp/memories/" + this.getUserEmail();
+    fs.mkdirSync(downloadDir, { recursive: true });
+    const zipDir = "./temp/zips/" + this.getUserEmail();
+    fs.mkdirSync(zipDir, { recursive: true });
+
+    // Download each memory media
+    // TODO: For now getting first 10 til we figure out disk challenge
+    objects["Contents"]?.slice(0, 10).forEach(async (object) => {
+      const fileKey = object["Key"] as string;
+      this.downloadFileFromS3(downloadDir, fileKey);
+    });
+
+    // Post-processing
+    const zipPath = zipDir + "/memories.zip";
+    await this.zipDirectory(zipDir, zipPath);
+    this.uploadLocalFileToS3(
+      zipPath,
+      "memories.zip",
+      this.getUserEmail(),
+      FILE_TYPE.REGULAR
+    );
+    // this.deleteDir(downloadDir)
+
+    return "done";
+  };
+
+  deleteDir = (dir) => {
+    fs.rmdirSync(dir, { recursive: true });
   };
 }
 
