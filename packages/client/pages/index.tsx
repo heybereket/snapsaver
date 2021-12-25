@@ -31,7 +31,7 @@ const Home: NextPage = () => {
     form.append("image", e.target.files?.[0] as string);
 
     await axios
-      .post("http://localhost:8080/v1/upload/file", form, {
+      .post("http://localhost:8080/v1/file/upload", form, {
         withCredentials: true,
         headers: {
           "Content-Type": `multipart/form-data`,
@@ -44,7 +44,7 @@ const Home: NextPage = () => {
 
   const DownloadHandler = async () => {
     await axios
-      .get("http://localhost:8080/v1/download/memories", {
+      .get("http://localhost:8080/v1/memories/download", {
         withCredentials: true,
       })
       .catch((error) => {
@@ -53,7 +53,7 @@ const Home: NextPage = () => {
   };
 
   return (
-    <Container className={`md:mt-4  place-items-center h-screen`}>
+    <Container className={`md:mt-4`}>
       <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col md:flex-row md:items-center md:justify-center">
         made by @addissemagn and @heybereket
       </div>
