@@ -3,6 +3,7 @@ import fs from "fs";
 import axios from "axios";
 import path from "path";
 import * as z from "zod";
+import pump from "pump";
 
 const schema = z.object({
   link: z.string(),
@@ -63,6 +64,23 @@ const routes: FastifyPluginCallback = async (fastify) => {
       message: "pong",
     });
   });
+
+  fastify.post("/upload_json", async (req: any, res) => {
+    const options = { limits: { fileSize: 1000 } };
+    const data = await req.file(options)
+
+    const dir = "images";
+    const fileName = "test.json";
+    const filePath = path.join("./", dir, fileName);
+    const writer = fs.createWriteStream(filePath);
+
+    await pump(data.file, writer);
+
+    await res.send({
+      success: true,
+      message: "done",
+    });
+  })
 
   fastify.post("/download", async (req, res) => {
     const { link } = schema.parse(req.body);
