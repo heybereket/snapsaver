@@ -47,7 +47,7 @@ class SnapSaver {
     const filePath = path.join("./", dir, fileName);
     const writer = fs.createWriteStream(filePath);
 
-    await pump(data.file, writer);
+    pump(data.file, writer);
   };
 
   downloadMemoryLink = (url: string, dir: string, fileName: string) => {
