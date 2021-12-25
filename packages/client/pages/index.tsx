@@ -26,7 +26,7 @@ const Title = (props: any) => {
 
 const Home: NextPage = () => {
   return (
-    <Container className={`md:mt-4`}>
+    <Container className={`md:mt-4  place-items-center h-screen`}>
       <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col md:flex-row md:items-center md:justify-center">
         made by @addissemagn and @heybereket
       </div>
