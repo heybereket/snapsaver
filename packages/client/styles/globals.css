@@ -11,3 +11,7 @@ body {
 		Cantarell, 'Helvetica Neue', sans-serif;
   color: #fff;
 }
+
+::file-selector-button {
+  display: none;
+}
