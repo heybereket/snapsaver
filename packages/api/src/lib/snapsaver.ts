@@ -3,14 +3,21 @@ import axios from "axios";
 import fs from "fs";
 import pump from "pump";
 import * as z from "zod";
+import aws from 'aws-sdk';
+
+aws.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: "us-east-1",
+});
 
 class SnapSaver {
   constructor() {}
 
   getMemoriesJson = () => {
     // TODO: Split this up to local (from file system) and production (from S3)
-    // const filePath = "/workspaces/snapsaver/packages/api/data/memories_history.json";
-    const filePath = "C:/Users/Owner/Documents/projects/snapsaver/packages/api/data/memories_history.json";
+    const filePath = "/workspaces/snapsaver/packages/api/data/memories_history.json";
+    // const filePath = "C:/Users/Owner/Documents/projects/snapsaver/packages/api/data/memories_history.json";
     return require(filePath);
   };
 
@@ -76,9 +83,16 @@ class SnapSaver {
         responseType: "stream",
       }).then((res) => {
         return new Promise<void>((resolve, reject) => {
+          // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
           res.data.pipe(writer);
           writer.on("finish", () => {
             console.log(`The file is finished downloading: ${fileName}.`);
+
+            // TODO: Upload files under directory by user email
+            const userEmail = "asemagn@gmail.com";
+
+            this.uploadFileToS3('/workspaces/snapsaver/packages/api/images/2021-12-23 18-45-16 UTC.mp4', fileName, userEmail);
+
             resolve();
           });
           writer.on("error", (error) => {
@@ -93,7 +107,22 @@ class SnapSaver {
     });
   };
 
-  uploadFileToS3 = () => {};
+  uploadFileToS3 = async (localFilePath: string, fileName: string, email: string) => {
+    fs.readFile(localFilePath, async (err, data) => {
+      if (err) throw err;
+      const s3FilePath = path.join("./", "users", email, "memories", fileName);
+
+      // TODO: Re-evaluate security of S3
+      new aws.S3().upload({
+        Bucket: process.env.AWS_BUCKET_NAME as string,
+        Key: s3FilePath,
+        Body: data,
+      }, (s3Err, data) => {
+        if (s3Err) throw s3Err;
+        console.log(`File uploaded to S3 successfully: ${data.Location}`);
+      });
+    });
+  };
 
   downloadAllMemories = () => {
     const memories = this.getMemoriesJson();
