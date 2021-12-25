@@ -56,7 +56,7 @@ class SnapSaver {
   uploadMemoriesJsonLocal = async () => {
     const fileName = "memories_history.json";
 
-    this.uploadFileToS3(
+    this.uploadLocalFileToS3(
       this.getAbsolutePath("data", fileName),
       fileName,
       this.getUserEmail(),
@@ -65,12 +65,14 @@ class SnapSaver {
   };
 
   uploadMemoriesJson = async (data: any) => {
-    const dir = "images";
-    const fileName = "test.json";
-    const filePath = path.join("./", dir, fileName);
-    const writer = fs.createWriteStream(filePath);
+    const buffer = await data.toBuffer();
 
-    pump(data.file, writer);
+    this.uploadFileToS3(
+      buffer,
+      "memories_history.json",
+      this.getUserEmail(),
+      FILE_TYPE.JSON
+    );
   };
 
   downloadMemoryLink = (url: string, dir: string, fileName: string) => {
@@ -142,7 +144,7 @@ class SnapSaver {
 
   getMemoriesJsonFromS3 = async () => {
     const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.JSON);
-    const s3FilePath = path.join(fileDir, "memories_history.json");
+    const s3FilePath = fileDir + "/memories_history.json";
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -159,28 +161,33 @@ class SnapSaver {
     }
   };
 
+  uploadLocalFileToS3 = (localFilePath: string, fileName: string, email: string, type: FILE_TYPE) => {
+    fs.readFile(localFilePath, async (err, data) => {
+      if (err) throw err;
+
+      this.uploadFileToS3(data, fileName, email, type)
+    });
+  }
+
   uploadFileToS3 = async (
-    localFilePath: string,
+    data: any,
     fileName: string,
     email: string,
     type: FILE_TYPE
   ) => {
-    fs.readFile(localFilePath, async (err, data) => {
-      if (err) throw err;
-      const filePath = this.getS3FileDir(email, type);
-      const s3FilePath = filePath + "/" + fileName;
+    const fileDir = this.getS3FileDir(email, type);
+    const s3FilePath = fileDir + "/" + fileName;
 
-      // TODO: Re-evaluate security of S3
-      const options = {
-        Bucket: process.env.AWS_BUCKET_NAME as string,
-        Key: s3FilePath,
-        Body: data,
-      };
+    // TODO: Re-evaluate security of S3
+    const options = {
+      Bucket: process.env.AWS_BUCKET_NAME as string,
+      Key: s3FilePath,
+      Body: data,
+    };
 
-      S3.upload(options, (s3Err, data) => {
-        if (s3Err) throw s3Err;
-        console.log(`File uploaded to S3 successfully: ${data.Location}`);
-      });
+    S3.upload(options, (s3Err, data) => {
+      if (s3Err) throw s3Err;
+      console.log(`File uploaded to S3 successfully: ${data.Location}`);
     });
   };
 
