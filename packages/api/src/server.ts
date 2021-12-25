@@ -1,11 +1,16 @@
 import Fastify from "fastify";
 import cors from "fastify-cors";
 import autoLoad from "fastify-autoload";
+import fastifyPassport from "fastify-passport";
+import fastifySecureSession from "fastify-secure-session";
 import "dotenv/config";
+import path from "path";
+import fs from "fs";
 
 import { join } from "path";
 import { PORT } from "./lib/constants";
 import * as log from "./lib/log";
+import { googleStrategy } from "./lib/google";
 
 const fastify = Fastify();
 
@@ -24,9 +29,30 @@ void fastify.register(cors, {
   methods: ["GET", "PUT", "POST", "PATCH", "DELETE"],
 });
 
+fastify.register(fastifySecureSession, {
+  cookieName: "snapsaver-session",
+  key: fs.readFileSync(path.join(__dirname, "../secret-key")),
+  cookie: {
+    path: "/",
+  },
+});
+
+fastify.register(fastifyPassport.initialize());
+fastify.register(fastifyPassport.secureSession());
+
+fastifyPassport.registerUserDeserializer(async (user, req) => {
+  return user;
+});
+
+fastifyPassport.registerUserSerializer(async (user, req) => {
+  return user;
+});
+
+fastifyPassport.use("google", googleStrategy());
+
 // Default Route
-fastify.get("/", async (request, reply) => {
-  reply.send({
+fastify.get("/", async (req, res) => {
+  res.send({
     name: "Snapsaver API",
     version: "1.0.0",
   });
