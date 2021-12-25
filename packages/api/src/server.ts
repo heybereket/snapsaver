@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "fastify-cors";
 import autoLoad from "fastify-autoload";
 import fastifyPassport from "fastify-passport";
+import fm from 'fastify-multipart'
 import fastifySecureSession from "fastify-secure-session";
 import "dotenv/config";
 import path from "path";
@@ -13,6 +14,12 @@ import * as log from "./lib/log";
 import { googleStrategy } from "./lib/google";
 
 const fastify = Fastify();
+
+fastify.addContentTypeParser("*", function (req, done) {
+  done(null, req);
+});
+
+fastify.register(fm);
 
 void fastify.register(autoLoad, {
   dir: join(__dirname, "./routes"),
