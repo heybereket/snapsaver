@@ -12,7 +12,13 @@ export const googleStrategy = () => {
         : "http://localhost:8080/v1/google/callback",
     },
     async function (accessToken, refreshToken, profile, done) {
-      try {
+      const currentUser = await prisma.user.findUnique({
+        where: {
+          email: profile.emails?.values()?.next()?.value.value,
+        },
+      });
+
+      if (!currentUser) {
         await prisma.user.create({
           data: {
             email: profile.emails?.values()?.next()?.value.value,
@@ -20,8 +26,8 @@ export const googleStrategy = () => {
         });
 
         return done(null, profile);
-      } catch (e) {
-        return done(e, undefined);
+      } else {
+        return done(undefined, profile);
       }
     }
   );

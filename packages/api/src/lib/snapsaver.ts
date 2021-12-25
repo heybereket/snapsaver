@@ -64,13 +64,14 @@ class SnapSaver {
     );
   };
 
-  uploadMemoriesJson = async (data: any) => {
+  uploadMemoriesJson = async (data: any, email: string) => {
     const buffer = await data.toBuffer();
+    console.log(email)
 
     this.uploadFileToS3(
       buffer,
       "memories_history.json",
-      this.getUserEmail(),
+      email,
       FILE_TYPE.JSON
     );
   };
