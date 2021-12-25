@@ -12,6 +12,18 @@ export const Container = (props: any) => {
   );
 };
 
+const Codeblock = (props: any) => {
+  return <code className="font-monospace text-primary">{props.content}</code>;
+};
+
+const Title = (props: any) => {
+  return (
+    <h1 className="font-bold text-3xl text-secondary mb-4">
+      <span className="text-gray-400">{props.number}.</span> {props.title}
+    </h1>
+  );
+};
+
 const Home: NextPage = () => {
   return (
     <Container className={`md:mt-4`}>
@@ -46,28 +58,68 @@ const Home: NextPage = () => {
         <div
           className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:mr-4 md:col-span-6 xl:col-span-5 2xl:col-span-6`}
         >
-          <h1 className="font-bold text-3xl text-secondary mb-4">
-            Upload your JSON
-          </h1>
+           <Title number="1" title="Request your data" />
 
-          <div className="mb-3 w-96">
+          <span className="ml-7">
+            Go to{" "}
+            <a
+              href="https://accounts.snapchat.com/accounts/downloadmydata"
+              target="_blank"
+              className="text-primary hover:text-gray-500"
+              rel="noreferrer"
+            >
+              Snapchat&apos;s Download My Data
+            </a>{" "}
+            and request your data. It could take a while, sit tight. After your
+            data has finished processing and you have recieved it in your inbox
+            - come back to Snapsaver to move on to the next step.
+          </span>
+        </div>
+        <div
+          className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:col-span-6 xl:col-span-7 2xl:col-span-6`}
+        >
+          <Title number="2" title="Upload your JSON" />
+
+          <span className="ml-9 mb-3">
+            Unzip the <Codeblock content="mydata-{bunch of numbers}.zip" /> file,
+            then open the <Codeblock content="json" /> folder. Select{" "}
+            <Codeblock content="memories_history.json" /> and upload it below.
+          </span>
+
+          <div className="mb-3 w-96 ml-9">
             <input
               className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
               type="file"
             />
           </div>
         </div>
+      </div>
+
+      <div className={`mt-1 grid grid-cols-12`}>
+        <div
+          className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:mr-4 md:col-span-6 xl:col-span-5 2xl:col-span-6`}
+        >
+           <Title number="3" title="Start the process" />
+
+           <span className="ml-9 mb-3">
+            Click <Codeblock content="start" /> to initiate processing your memories. We&apos;ll download your files on our end and send you an email when they&apos;re ready to be exported.
+          </span>
+
+          <div className="mb-3 w-96 ml-9">
+            <button className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black">
+              Start -&gt;
+            </button>
+          </div>
+        </div>
         <div
           className={`px-10 py-10 bg-dark-lighter rounded-lg flex flex-col mb-2 col-span-12 md:col-span-6 xl:col-span-7 2xl:col-span-6`}
         >
-          <h1 className="font-bold text-3xl text-secondary mb-4">
-            Easy. You&apos;re done.
-          </h1>
+           <Title number="4" title="Your files are ready" />
 
-          <div className="mb-3 w-96">
-            <button
-              className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
-            >Download -&gt;</button>
+          <div className="mb-3 w-96 ml-9">
+            <button className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black">
+              Export files -&gt;
+            </button>
           </div>
         </div>
       </div>
