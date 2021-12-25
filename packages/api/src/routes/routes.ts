@@ -1,91 +1,41 @@
 import { FastifyPluginCallback } from "fastify";
-import fs from "fs";
-import axios from "axios";
-import path from "path";
 import * as z from "zod";
-import pump from "pump";
+import ss from "../lib/snapsaver";
 
-const schema = z.object({
-  link: z.string(),
-});
-
-const downloadMemoryFile = (url: string, dir: string, fileName: string) => {
-  // TODO: Check if file already exists
-
-  new Promise<void>((resolve, reject) => {
-    // Make direcotry if it doesn't exist
-    fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join("./", dir, fileName);
-    const writer = fs.createWriteStream(filePath);
-
-    axios({
-      method: "get",
-      url,
-      responseType: "stream",
-    }).then((res) => {
-      return new Promise<void>((resolve, reject) => {
-        res.data.pipe(writer);
-        writer.on("finish", () => {
-          console.log(`The file is finished downloading: ${fileName}.`);
-          resolve();
-        });
-        writer.on("error", (error) => {
-          reject(error);
-        });
-      }).catch((error) => {
-        console.log(
-          `Something happened while downloading ${fileName}: ${error}`
-        );
-      });
-    });
-  });
-};
-
-const downloadMemory = (url: string, dir: string, fileName: string) => {
-  new Promise<void>((resolve, reject) => {
-    axios({
-      method: "post",
-      url,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    }).then((res) => {
-      const memoryURL = res.data;
-      downloadMemoryFile(memoryURL, dir, fileName);
-    });
-  });
-};
+const SnapSaver = new ss();
 
 // TODO: Queueing for downloads?
 const routes: FastifyPluginCallback = async (fastify) => {
   fastify.get("/ping", async (req, res) => {
-    await res.send({
-      success: true,
-      message: "pong",
-    });
+    await res.send({ message: "pong" });
   });
 
-  fastify.post("/upload_json", async (req: any, res) => {
+  fastify.post("/upload/memories", async (req: any, res) => {
     const options = { limits: { fileSize: 1000 } };
     const data = await req.file(options)
+    SnapSaver.uploadMemoriesJson(data)
 
-    const dir = "images";
-    const fileName = "test.json";
-    const filePath = path.join("./", dir, fileName);
-    const writer = fs.createWriteStream(filePath);
+    await res.send({ message: "done" });
+  })
 
-    await pump(data.file, writer);
+  fastify.get("/download/memories", async (req, res) => {
+    const fileContents = SnapSaver.getMemoriesJson();
+    SnapSaver.downloadAllMemories();
 
     await res.send({
-      success: true,
-      message: "done",
+      data: fileContents,
+      isMemoriesJsonValid: SnapSaver.validateMemoriesJson(fileContents)
     });
   })
 
-  fastify.post("/download", async (req, res) => {
+  fastify.post("/download/file", async (req, res) => {
+    const schema = z.object({
+      link: z.string(),
+    });
+
     const { link } = schema.parse(req.body);
 
-    downloadMemory(link, "images", "test.mp4");
+    SnapSaver.downloadMemoryFile(link, "images", "test.mp4");
 
     await res.send({
       success: true,
