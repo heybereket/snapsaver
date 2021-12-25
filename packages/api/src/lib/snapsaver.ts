@@ -9,8 +9,8 @@ class SnapSaver {
 
   getMemoriesJson = () => {
     // TODO: Split this up to local (from file system) and production (from S3)
-    const filePath =
-      "/workspaces/snapsaver/packages/api/data/memories_history.json";
+    // const filePath = "/workspaces/snapsaver/packages/api/data/memories_history.json";
+    const filePath = "C:/Users/Owner/Documents/projects/snapsaver/packages/api/data/memories_history.json";
     return require(filePath);
   };
 
@@ -43,7 +43,7 @@ class SnapSaver {
     await pump(data.file, writer);
   };
 
-  getMemoryDownloadLink = (url: string, dir: string, fileName: string) => {
+  downloadMemoryLink = (url: string, dir: string, fileName: string) => {
     new Promise<void>((resolve, reject) => {
       axios({
         method: "post",
@@ -101,11 +101,11 @@ class SnapSaver {
     memories["Saved Media"].forEach((memory) => {
       const url = memory["Download Link"];
       const dir = "images";
-      const fileName = `${memory["Date"]}.${
+      const fileName = `${memory["Date"]}${
         memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
       }`;
 
-      this.downloadMemoryFile(url, dir, fileName);
+      this.downloadMemoryLink(url, dir, fileName.replaceAll(':', '-'));
     });
   };
 }
