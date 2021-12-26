@@ -242,6 +242,12 @@ class SnapSaver {
     }
   };
 
+  isZipReady = async (email: string) => {
+    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
+
+    return await this.objectExistsInS3(fileKey);
+  }
+
   getZipDownloadLink = (email: string) => {
     const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
 
