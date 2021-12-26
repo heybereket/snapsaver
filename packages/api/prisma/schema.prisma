@@ -16,10 +16,11 @@ model User {
 
 model Memory {
   id           Int      @id @default(autoincrement())
-  email        String   @unique
+  email        String
   date         DateTime
   type         Type
   downloadLink String
+  snapchatLink String
   status       Status   @default(PENDING)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
