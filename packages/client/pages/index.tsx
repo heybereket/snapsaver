@@ -3,6 +3,7 @@ import Image from "next/image";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { API_URL } from "../lib/constants";
+import { useUser } from "../hooks/useUser";
 
 export const Container = (props: any) => {
   return (
@@ -30,6 +31,7 @@ const Title = (props: any) => {
 const Home: NextPage = () => {
   const [isDownloadReady, setIsDownloadReady] = useState(false);
   const [existingUpload, setExistingUpload] = useState(false);
+  const { user } = useUser();
 
   const JSONHandler = async (e: any) => {
     const form = new FormData();
@@ -104,10 +106,18 @@ const Home: NextPage = () => {
       <Container className={`md:mt-4`}>
         <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col ">
           <a
-            href={`${API_URL}/google`}
+            href={user ? undefined : `${API_URL}/google`}
             className="text-center px-5 py-3 text-secondary bg-red-500 rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
           >
-            <button onClick={DownloadHandler}>Sign in with Google -&gt;</button>
+            <button>
+              {user ? (
+                <span>
+                  👋 Hey, {user.emails?.values()?.next()?.value.value}
+                </span>
+              ) : (
+                <span>Sign in with Google -&gt;</span>
+              )}
+            </button>
           </a>
         </div>
 
