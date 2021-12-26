@@ -52,9 +52,20 @@ const Home: NextPage = () => {
       });
   };
 
+  const ZIPHandler = async () => {
+    await axios
+      .get("http://localhost:8080/v1/link/zip", {
+        withCredentials: true,
+      })
+      .then((res) => window.location.href = res.data.link)
+      .catch((error) => {
+        console.log(error.message);
+      })
+  };
+
   return (
     <Container className={`md:mt-4`}>
-      <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col md:flex-row md:items-center md:justify-center">
+      <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col md:flex-row items-center justify-center">
         made by @addissemagn and @heybereket
       </div>
       <div
@@ -150,7 +161,10 @@ const Home: NextPage = () => {
           <Title number="4" title="Your files are ready" />
 
           <div className="mb-3 w-96 ml-9">
-            <button className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black">
+            <button
+              className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
+              onClick={ZIPHandler}
+            >
               Export files -&gt;
             </button>
           </div>
