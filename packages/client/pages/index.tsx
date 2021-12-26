@@ -2,7 +2,7 @@ import type { NextPage } from "next";
 import Image from "next/image";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Google } from "../icons/Google";
+import { API_URL } from "../lib/constants";
 
 export const Container = (props: any) => {
   return (
@@ -36,7 +36,7 @@ const Home: NextPage = () => {
     form.append("image", e.target.files?.[0] as string);
 
     await axios
-      .post("http://localhost:8080/v1/file/upload", form, {
+      .post(`${API_URL}/file/upload`, form, {
         withCredentials: true,
         headers: {
           "Content-Type": `multipart/form-data`,
@@ -49,7 +49,7 @@ const Home: NextPage = () => {
 
   const DownloadHandler = async () => {
     await axios
-      .get("http://localhost:8080/v1/memories/download", {
+      .get(`${API_URL}/memories/download`, {
         withCredentials: true,
       })
       .catch((error) => {
@@ -59,7 +59,7 @@ const Home: NextPage = () => {
 
   const ZIPHandler = async () => {
     await axios
-      .get("http://localhost:8080/v1/zip/link", {
+      .get(`${API_URL}/zip/link`, {
         withCredentials: true,
       })
       .then((res) => (window.location.href = res.data.link))
@@ -70,7 +70,7 @@ const Home: NextPage = () => {
 
   const isZIPReady = async () => {
     return await axios
-      .get("http://localhost:8080/v1/zip/status", {
+      .get(`${API_URL}/zip/status`, {
         withCredentials: true,
       })
       .then((res) => setIsDownloadReady(res.data.ready))
@@ -81,7 +81,7 @@ const Home: NextPage = () => {
 
   const checkExistingUpload = async () => {
     return await axios
-      .get("http://localhost:8080/v1/file/status", {
+      .get(`${API_URL}/file/status`, {
         withCredentials: true,
       })
       .then((res) => setExistingUpload(res.data.ready))
