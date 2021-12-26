@@ -2,6 +2,7 @@ import type { NextPage } from "next";
 import Image from "next/image";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { Google } from "../icons/Google";
 
 export const Container = (props: any) => {
   return (
@@ -61,7 +62,7 @@ const Home: NextPage = () => {
       .get("http://localhost:8080/v1/zip/link", {
         withCredentials: true,
       })
-      .then(res => (window.location.href = res.data.link))
+      .then((res) => (window.location.href = res.data.link))
       .catch((error) => {
         console.log(error.message);
       });
@@ -99,8 +100,17 @@ const Home: NextPage = () => {
   }, []);
 
   return (
-    <div className="m-w-5 flex items-center justify-center h-screen">
+    <div className="m-w-5 md:flex md:items-center md:justify-center md:h-screen">
       <Container className={`md:mt-4`}>
+        <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col ">
+          <a
+            href="http://localhost:8080/v1/google"
+            className="text-center px-5 py-3 text-secondary bg-red-500 rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
+          >
+            <button onClick={DownloadHandler}>Sign in with Google -&gt;</button>
+          </a>
+        </div>
+
         <div
           className={`px-7 py-8 bg-dark-lighter rounded-lg flex flex-col md:flex-row md:items-center md:justify-center`}
         >
@@ -164,10 +174,11 @@ const Home: NextPage = () => {
                 type="file"
               />
             </div>
-            
+
             {existingUpload && (
               <span className="ml-9 mb-3 text-secondary text-sm">
-                Looks like you&apos;ve already uploaded a file. To replace it, upload another file.
+                Looks like you&apos;ve already uploaded a file. To replace it,
+                upload another file.
               </span>
             )}
           </div>
