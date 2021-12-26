@@ -67,6 +67,15 @@ const routes: FastifyPluginCallback = async (fastify) => {
       message,
     });
   })
+
+  fastify.get("/link/zip", async (req: any, res) => {
+    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+    const link = SnapSaver.getZipDownloadLink(email);
+
+    await res.send({
+      link,
+    });
+  })
 };
 
 export default routes;

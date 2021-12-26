@@ -221,6 +221,12 @@ class SnapSaver {
     return url;
   };
 
+  getZipDownloadLink = (email: string) => {
+    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
+
+    return this.getS3DownloadLink(fileKey)
+  }
+
   // List of URLs to download the files from S3
   getMemoriesDownloadLinks = async () => {
     const dir =
