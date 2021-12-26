@@ -207,6 +207,8 @@ class SnapSaver {
       );
     });
 
+    this.startZipMemories(email);
+
     return { memories };
   };
 
@@ -278,7 +280,7 @@ class SnapSaver {
   };
 
   // TODO: This function is redudant rn but will use in re-factor
-  startZipMemories = () => {
+  startZipMemories = (email: string) => {
     return this.downloadAllFilesFromS3();
   };
 
