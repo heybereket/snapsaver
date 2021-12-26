@@ -68,7 +68,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
   })
 
   // TODO: Fix the endpoint convention
-  fastify.get("/memories/zip", async (req, res) => {
+  fastify.get("/memories/zip", async (req: any, res) => {
     const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
     const message = await SnapSaver.startZipMemories(email);
 
@@ -79,7 +79,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   fastify.get("/zip/link", async (req: any, res) => {
     const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
-    const link = SnapSaver.getZipDownloadLink(email);
+    const link = await SnapSaver.getZipDownloadLink(email);
 
     await res.send({
       link,

@@ -28,6 +28,7 @@ const Title = (props: any) => {
 
 const Home: NextPage = () => {
   const [isDownloadReady, setIsDownloadReady] = useState(false);
+  const [existingUpload, setExistingUpload] = useState(false);
 
   const JSONHandler = async (e: any) => {
     const form = new FormData();
@@ -60,7 +61,7 @@ const Home: NextPage = () => {
       .get("http://localhost:8080/v1/zip/link", {
         withCredentials: true,
       })
-      .then((res) => (window.location.href = res.data.link))
+      .then(res => (window.location.href = res.data.link))
       .catch((error) => {
         console.log(error.message);
       });
@@ -77,9 +78,21 @@ const Home: NextPage = () => {
       });
   };
 
+  const checkExistingUpload = async () => {
+    return await axios
+      .get("http://localhost:8080/v1/file/status", {
+        withCredentials: true,
+      })
+      .then((res) => setExistingUpload(res.data.ready))
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
+
   useEffect(() => {
     const fetch = async () => {
       await isZIPReady();
+      await checkExistingUpload();
     };
 
     fetch();
@@ -144,13 +157,19 @@ const Home: NextPage = () => {
               <Codeblock content="memories_history.json" /> and upload it below.
             </span>
 
-            <div className="mb-3 w-96 ml-9">
+            <div className="mb-3 mt-1 w-96 ml-9">
               <input
                 className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
                 onChange={JSONHandler}
                 type="file"
               />
             </div>
+            
+            {existingUpload && (
+              <span className="ml-9 mb-3 text-secondary text-sm">
+                Looks like you&apos;ve already uploaded a file. To replace it, upload another file.
+              </span>
+            )}
           </div>
         </div>
 
