@@ -1,11 +1,10 @@
 import path from "path";
 import axios from "axios";
 import fs from "fs";
-import pump from "pump";
+import sharp from "sharp";
 import * as z from "zod";
 import { S3 } from "./connections/aws";
 import { IS_PRODUCTION } from "./constants";
-import { object } from "zod";
 import archiver from "archiver";
 
 enum FILE_TYPE {
@@ -77,7 +76,12 @@ class SnapSaver {
     );
   };
 
-  getDownloadLinkFromSnapchat = (url: string, dir: string, fileName: string, email: string) => {
+  getDownloadLinkFromSnapchat = (
+    url: string,
+    dir: string,
+    fileName: string,
+    email: string
+  ) => {
     new Promise<void>((resolve, reject) => {
       axios({
         method: "post",
@@ -87,7 +91,6 @@ class SnapSaver {
         },
       }).then((res) => {
         const memoryURL = res.data;
-        console.log("memoryUrl", memoryURL);
         this.downloadFileFromSnapchat(memoryURL, dir, fileName, email);
       });
     });
@@ -96,39 +99,26 @@ class SnapSaver {
   // TODO: Add meta data to image? So it can be filtered by date
   // TODO: Decide naming scheme for files
   // TODO: What to do if memories download fails midway
-  downloadFileFromSnapchat = (url: string, dir: string, fileName: string, email: string) => {
+  downloadFileFromSnapchat = (
+    url: string,
+    dir: string,
+    fileName: string,
+    email: string
+  ) => {
     // TODO: Check if file already exists
 
     new Promise<void>((resolve, reject) => {
-      // Make direcotry if it doesn't exist
-      fs.mkdirSync(dir, { recursive: true });
-      const filePath = path.join("./", dir, fileName);
-      const writer = fs.createWriteStream(filePath);
-
       axios({
         method: "get",
         url,
-        responseType: "stream",
+        responseType: "arraybuffer",
       }).then((res) => {
         try {
           return new Promise<void>((resolve, reject) => {
             // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
-            res.data.pipe(writer);
-            writer.on("finish", () => {
-              console.log(`The file is finished downloading: ${fileName}.`);
+            const buffer = Buffer.from(res.data, "binary");
 
-              this.uploadFileToS3(
-                this.getAbsolutePath("images", fileName),
-                fileName,
-                email,
-                FILE_TYPE.MEMORY
-              );
-
-              resolve();
-            });
-            writer.on("error", (error) => {
-              reject(error);
-            });
+            this.uploadFileToS3(buffer, fileName, email, FILE_TYPE.MEMORY);
           });
         } catch (error_1) {
           console.log(
@@ -151,7 +141,7 @@ class SnapSaver {
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: s3FilePath
+      Key: s3FilePath,
     };
 
     try {
@@ -209,7 +199,12 @@ class SnapSaver {
         memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
       }`;
 
-      this.getDownloadLinkFromSnapchat(url, dir, fileName.replaceAll(":", "-"), email);
+      this.getDownloadLinkFromSnapchat(
+        url,
+        dir,
+        fileName.replaceAll(":", "-"),
+        email
+      );
     });
 
     return { memories };
@@ -228,7 +223,8 @@ class SnapSaver {
 
   // List of URLs to download the files from S3
   getMemoriesDownloadLinks = async () => {
-    const dir = this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
+    const dir =
+      this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,

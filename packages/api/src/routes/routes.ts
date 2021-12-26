@@ -34,14 +34,15 @@ const routes: FastifyPluginCallback = async (fastify) => {
     });
   });
 
-  fastify.post("/media/download", async (req, res) => {
+  fastify.post("/media/download", async (req: any, res) => {
     const schema = z.object({
       link: z.string(),
     });
 
     const { link } = schema.parse(req.body);
+    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
 
-    SnapSaver.downloadFileFromSnapchat(link, "images", "test.mp4");
+    SnapSaver.downloadFileFromSnapchat(link, "images", "test.mp4", email);
 
     await res.send({
       success: true,
