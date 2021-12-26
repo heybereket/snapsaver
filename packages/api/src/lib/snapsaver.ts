@@ -8,6 +8,7 @@ import { IS_PRODUCTION } from "./constants";
 import archiver from "archiver";
 import { ConfigurationServicePlaceholders } from "aws-sdk/lib/config_service_placeholders";
 import { createContext } from "vm";
+import AdmZip from "adm-zip";
 
 enum FILE_TYPE {
   "MEMORY",
@@ -211,6 +212,10 @@ class SnapSaver {
         email,
         idx == array.length - 1 // last file
       );
+
+      if (idx == array.length - 1) {
+        // then set flag in db to ready
+      }
     });
   }
 
@@ -310,6 +315,21 @@ class SnapSaver {
     });
   };
 
+  zipDirectoryV2 = (sourceDir: string, outPath: string, email: string) => {
+      const zip = new AdmZip();
+      console.log('sourceDir', sourceDir)
+      zip.addLocalFolder(sourceDir);
+      zip.writeZip(outPath);
+      console.log(`Created ${outPath} successfully`);
+
+      this.uploadLocalFileToS3(
+        outPath,
+        "memories.zip",
+        email,
+        FILE_TYPE.REGULAR
+      );
+  }
+
   getObjectsInS3Directory = async () => {
     const s3Dir =
       this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
@@ -362,13 +382,7 @@ class SnapSaver {
 
     // Post-processing
     const zipPath = zipDir + "/memories.zip";
-    await this.zipDirectory(zipDir, zipPath);
-    this.uploadLocalFileToS3(
-      zipPath,
-      "memories.zip",
-      email,
-      FILE_TYPE.REGULAR
-    );
+    this.zipDirectoryV2(downloadDir, zipPath, email);
     // this.deleteDir(downloadDir)
 
     return "done";
