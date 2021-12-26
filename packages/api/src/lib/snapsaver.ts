@@ -6,6 +6,8 @@ import * as z from "zod";
 import { S3 } from "./connections/aws";
 import { IS_PRODUCTION } from "./constants";
 import archiver from "archiver";
+import { ConfigurationServicePlaceholders } from "aws-sdk/lib/config_service_placeholders";
+import { createContext } from "vm";
 
 enum FILE_TYPE {
   "MEMORY",
@@ -80,9 +82,10 @@ class SnapSaver {
     url: string,
     dir: string,
     fileName: string,
-    email: string
+    email: string,
+    last?: boolean
   ) => {
-    new Promise<void>((resolve, reject) => {
+    // new Promise<void>((resolve, reject) => {
       axios({
         method: "post",
         url,
@@ -91,9 +94,9 @@ class SnapSaver {
         },
       }).then((res) => {
         const memoryURL = res.data;
-        this.downloadFileFromSnapchat(memoryURL, dir, fileName, email);
+        this.downloadFileFromSnapchat(memoryURL, dir, fileName, email, last);
       });
-    });
+    // });
   };
 
   // TODO: Add meta data to image? So it can be filtered by date
@@ -103,11 +106,10 @@ class SnapSaver {
     url: string,
     dir: string,
     fileName: string,
-    email: string
+    email: string, 
+    last?: boolean
   ) => {
     // TODO: Check if file already exists
-
-    new Promise<void>((resolve, reject) => {
       axios({
         method: "get",
         url,
@@ -118,7 +120,10 @@ class SnapSaver {
             // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
             const buffer = Buffer.from(res.data, "binary");
 
-            this.uploadFileToS3(buffer, fileName, email, FILE_TYPE.MEMORY);
+            // this is so jank. passing a callback to download zip memories only if this file is the last one in the index of files being downloaded.
+            // con (one of many): if there's a failure with the last file, may not make it to the point of zipping.
+            const callback = last == true ? () => { this.startZipMemories(email) } : null;
+            this.uploadFileToS3(buffer, fileName, email, FILE_TYPE.MEMORY, callback);
           });
         } catch (error_1) {
           console.log(
@@ -126,7 +131,6 @@ class SnapSaver {
           );
         }
       });
-    });
   };
 
   getS3FileDir = (email: string, type: FILE_TYPE) => {
@@ -170,7 +174,8 @@ class SnapSaver {
     uploadData: any,
     fileName: string,
     email: string,
-    type: FILE_TYPE
+    type: FILE_TYPE,
+    callback?: any
   ) => {
     const fileDir = this.getS3FileDir(email, type);
     const s3FilePath = fileDir + "/" + fileName;
@@ -185,14 +190,14 @@ class SnapSaver {
     S3.upload(options, (s3Err, data) => {
       if (s3Err) throw s3Err;
       console.log(`File uploaded to S3 successfully: ${data.Location}`);
+
+      if (callback) callback()
     });
   };
 
-  downloadAllMemories = async (email: string) => {
-    // TODO: Check if file exists
-    const memories = await this.getMemoriesJsonFromS3(email);
-
-    memories["Saved Media"].forEach((memory) => {
+  // This is getting outta hand (addis)
+  iterateAndDownload = async (memories: any, email: any) => {
+    memories["Saved Media"].forEach((memory, idx, array) => {
       const url = memory["Download Link"];
       const dir = "images";
       const fileName = `${memory["Date"]}${
@@ -203,11 +208,17 @@ class SnapSaver {
         url,
         dir,
         fileName.replaceAll(":", "-"),
-        email
+        email,
+        idx == array.length - 1 // last file
       );
     });
+  }
 
-    this.startZipMemories(email);
+  downloadAllMemories = async (email: string) => {
+    // TODO: Check if file exists
+    const memories = await this.getMemoriesJsonFromS3(email);
+
+    await this.iterateAndDownload(memories , email);
 
     return { memories };
   };
@@ -281,7 +292,7 @@ class SnapSaver {
 
   // TODO: This function is redudant rn but will use in re-factor
   startZipMemories = (email: string) => {
-    return this.downloadAllFilesFromS3();
+    return this.downloadAllFilesFromS3(email);
   };
 
   zipDirectory = (sourceDir: string, outPath: string) => {
@@ -329,7 +340,7 @@ class SnapSaver {
   };
 
   // This just does it recurssively
-  downloadAllFilesFromS3 = async () => {
+  downloadAllFilesFromS3 = async (email: string) => {
     // Get list of files in users memory directory
     const objects = await this.getObjectsInS3Directory();
     if (objects["Contents"]?.length == 0) {
@@ -337,9 +348,9 @@ class SnapSaver {
     }
 
     // Create directories for downloading memories and saving Zip file
-    const downloadDir = "./temp/memories/" + this.getDevUserEmail();
+    const downloadDir = "./temp/memories/" + email;
     fs.mkdirSync(downloadDir, { recursive: true });
-    const zipDir = "./temp/zips/" + this.getDevUserEmail();
+    const zipDir = "./temp/zips/" + email;
     fs.mkdirSync(zipDir, { recursive: true });
 
     // Download each memory media
@@ -355,7 +366,7 @@ class SnapSaver {
     this.uploadLocalFileToS3(
       zipPath,
       "memories.zip",
-      this.getDevUserEmail(),
+      email,
       FILE_TYPE.REGULAR
     );
     // this.deleteDir(downloadDir)
