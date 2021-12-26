@@ -24,6 +24,14 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({ message: "done" });
   });
 
+  fastify.get("/file/status", async (req: any, res) => {
+    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+
+    await res.send({
+      ready: await SnapSaver.isMemoriesJsonAvailable(email),
+    });
+  })
+
   fastify.get("/memories/download", async (req: any, res) => {
     const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
     const { memories } = await SnapSaver.downloadAllMemories(email);
@@ -81,7 +89,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
     const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
 
     await res.send({
-      ready: await SnapSaver.isZipReady(email),
+      ready: await SnapSaver.isZipAvailable(email),
     });
   })
 };

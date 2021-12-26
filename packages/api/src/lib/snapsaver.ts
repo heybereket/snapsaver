@@ -242,7 +242,13 @@ class SnapSaver {
     }
   };
 
-  isZipReady = async (email: string) => {
+  isMemoriesJsonAvailable = async (email: string) => {
+    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories_history.json";
+
+    return await this.objectExistsInS3(fileKey);
+  }
+
+  isZipAvailable = async (email: string) => {
     const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
 
     return await this.objectExistsInS3(fileKey);
