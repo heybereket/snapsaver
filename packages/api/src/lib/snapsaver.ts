@@ -210,15 +210,36 @@ class SnapSaver {
     return { memories };
   };
 
-  getS3DownloadLink = (fileKey: string) => {
-    const options = {
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: fileKey,
-    };
+  objectExistsInS3 = async (fileKey: string) => {
+    try {
+      const options = {
+        Bucket: process.env.AWS_BUCKET_NAME as string,
+        Key: fileKey,
+      };
 
-    const url = S3.getSignedUrl("getObject", options);
-    console.log(url);
-    return url;
+      await S3.headObject(options).promise()
+      return true;
+    } catch (err) {
+      if (err.statusCode === 404) console.error(`File not found in S3: ${fileKey}`)
+
+      return false;
+    }
+  }
+
+  getS3DownloadLink = async (fileKey: string) => {
+    try {
+      if (!await this.objectExistsInS3(fileKey)) return null;
+
+      const options = {
+        Bucket: process.env.AWS_BUCKET_NAME as string,
+        Key: fileKey,
+      };
+
+      const url = S3.getSignedUrl("getObject", options);
+      return url;
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   getZipDownloadLink = (email: string) => {
