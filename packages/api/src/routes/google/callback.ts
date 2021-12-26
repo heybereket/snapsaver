@@ -1,5 +1,6 @@
 import { FastifyPluginCallback } from "fastify";
 import fastifyPassport from "fastify-passport";
+import { CLIENT_URL } from "../../lib/constants";
 
 const googleCallback: FastifyPluginCallback = async (fastify) => {
   fastify.get(
@@ -11,10 +12,7 @@ const googleCallback: FastifyPluginCallback = async (fastify) => {
       }),
     },
     async (req, res) => {
-      res.send({
-          success: true,
-          message: "Successfully authenticated with Google",
-      })
+      res.redirect(CLIENT_URL);
     }
   );
 };

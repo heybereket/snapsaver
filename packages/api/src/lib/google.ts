@@ -1,15 +1,13 @@
 import { Strategy } from "passport-google-oauth20";
 import { prisma } from "./connections/prisma";
-import { IS_PRODUCTION } from "./constants";
+import { API_URL } from "./constants";
 
 export const googleStrategy = () => {
   return new Strategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: IS_PRODUCTION
-        ? "https://api.snapsaver.me/v1/google/callback"
-        : "http://localhost:8080/v1/google/callback",
+      callbackURL: `${API_URL}/google/callback`,
     },
     async function (accessToken, refreshToken, profile, done) {
       const currentUser = await prisma.user.findUnique({
