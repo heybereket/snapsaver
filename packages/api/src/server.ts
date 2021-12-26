@@ -30,6 +30,7 @@ void fastify.register(cors, {
   credentials: true,
   origin: [
     "https://snapsaver.me",
+    "https://snapsaver.vercel.app",
     "https://www.snapsaver.me",
     "http://localhost:3000",
   ],
