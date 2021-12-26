@@ -24,8 +24,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({ message: "done" });
   });
 
-  fastify.get("/memories/download", async (req, res) => {
-    const { memories } = await SnapSaver.downloadAllMemories();
+  fastify.get("/memories/download", async (req: any, res) => {
+    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+    const { memories } = await SnapSaver.downloadAllMemories(email);
 
     await res.send({
       data: memories,

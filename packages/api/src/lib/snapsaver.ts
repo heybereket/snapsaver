@@ -48,7 +48,7 @@ class SnapSaver {
     return path.resolve(relativePath);
   };
 
-  getUserEmail = () => {
+  getDevUserEmail = () => {
     // TODO: Add OAuth
     return IS_PRODUCTION
       ? "asemagn@gmail.com"
@@ -61,7 +61,7 @@ class SnapSaver {
     this.uploadLocalFileToS3(
       this.getAbsolutePath("data", fileName),
       fileName,
-      this.getUserEmail(),
+      this.getDevUserEmail(),
       FILE_TYPE.REGULAR
     );
   };
@@ -77,7 +77,7 @@ class SnapSaver {
     );
   };
 
-  getDownloadLinkFromSnapchat = (url: string, dir: string, fileName: string) => {
+  getDownloadLinkFromSnapchat = (url: string, dir: string, fileName: string, email: string) => {
     new Promise<void>((resolve, reject) => {
       axios({
         method: "post",
@@ -87,7 +87,8 @@ class SnapSaver {
         },
       }).then((res) => {
         const memoryURL = res.data;
-        this.downloadFileFromSnapchat(memoryURL, dir, fileName);
+        console.log("memoryUrl", memoryURL);
+        this.downloadFileFromSnapchat(memoryURL, dir, fileName, email);
       });
     });
   };
@@ -95,7 +96,7 @@ class SnapSaver {
   // TODO: Add meta data to image? So it can be filtered by date
   // TODO: Decide naming scheme for files
   // TODO: What to do if memories download fails midway
-  downloadFileFromSnapchat = (url: string, dir: string, fileName: string) => {
+  downloadFileFromSnapchat = (url: string, dir: string, fileName: string, email: string) => {
     // TODO: Check if file already exists
 
     new Promise<void>((resolve, reject) => {
@@ -119,7 +120,7 @@ class SnapSaver {
               this.uploadFileToS3(
                 this.getAbsolutePath("images", fileName),
                 fileName,
-                this.getUserEmail(),
+                email,
                 FILE_TYPE.MEMORY
               );
 
@@ -144,14 +145,13 @@ class SnapSaver {
     );
   };
 
-  getMemoriesJsonFromS3 = async () => {
-    const fileDir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.REGULAR);
+  getMemoriesJsonFromS3 = async (email: string) => {
+    const fileDir = this.getS3FileDir(email, FILE_TYPE.REGULAR);
     const s3FilePath = fileDir + "/memories_history.json";
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: s3FilePath,
-      // ResponseContentType : 'application/json'
+      Key: s3FilePath
     };
 
     try {
@@ -177,7 +177,7 @@ class SnapSaver {
   };
 
   uploadFileToS3 = async (
-    data: any,
+    uploadData: any,
     fileName: string,
     email: string,
     type: FILE_TYPE
@@ -189,7 +189,7 @@ class SnapSaver {
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
       Key: s3FilePath,
-      Body: data,
+      Body: uploadData,
     };
 
     S3.upload(options, (s3Err, data) => {
@@ -198,9 +198,9 @@ class SnapSaver {
     });
   };
 
-  downloadAllMemories = async () => {
+  downloadAllMemories = async (email: string) => {
     // TODO: Check if file exists
-    const memories = await this.getMemoriesJsonFromS3();
+    const memories = await this.getMemoriesJsonFromS3(email);
 
     memories["Saved Media"].forEach((memory) => {
       const url = memory["Download Link"];
@@ -209,7 +209,7 @@ class SnapSaver {
         memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
       }`;
 
-      this.getDownloadLinkFromSnapchat(url, dir, fileName.replaceAll(":", "-"));
+      this.getDownloadLinkFromSnapchat(url, dir, fileName.replaceAll(":", "-"), email);
     });
 
     return { memories };
@@ -228,7 +228,7 @@ class SnapSaver {
 
   // List of URLs to download the files from S3
   getMemoriesDownloadLinks = async () => {
-    const dir = this.getS3FileDir(this.getUserEmail(), FILE_TYPE.MEMORY) + "/";
+    const dir = this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -264,7 +264,7 @@ class SnapSaver {
 
   getObjectsInS3Directory = async () => {
     const s3Dir =
-      this.getS3FileDir(this.getUserEmail(), FILE_TYPE.MEMORY) + "/";
+      this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
 
     const options = {
       Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -300,9 +300,9 @@ class SnapSaver {
     }
 
     // Create directories for downloading memories and saving Zip file
-    const downloadDir = "./temp/memories/" + this.getUserEmail();
+    const downloadDir = "./temp/memories/" + this.getDevUserEmail();
     fs.mkdirSync(downloadDir, { recursive: true });
-    const zipDir = "./temp/zips/" + this.getUserEmail();
+    const zipDir = "./temp/zips/" + this.getDevUserEmail();
     fs.mkdirSync(zipDir, { recursive: true });
 
     // Download each memory media
@@ -318,7 +318,7 @@ class SnapSaver {
     this.uploadLocalFileToS3(
       zipPath,
       "memories.zip",
-      this.getUserEmail(),
+      this.getDevUserEmail(),
       FILE_TYPE.REGULAR
     );
     // this.deleteDir(downloadDir)
