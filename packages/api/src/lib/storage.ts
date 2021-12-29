@@ -109,7 +109,6 @@ class Storage implements IStorage {
         Bucket: S3_BUCKET,
         Prefix: dir,
       };
-      console.log("dir", dir)
 
       return await S3.listObjectsV2(options).promise();
     } catch (err) {

@@ -71,7 +71,6 @@ const routes: FastifyPluginCallback = async (fastify) => {
   fastify.get("/memories/zip", async (req: any, res) => {
     const email = util.getUserEmail(req);
     const message = await SnapSaver.zipMemories(email);
-    console.log("hi");
 
     await res.send({
       message,
