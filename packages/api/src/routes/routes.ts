@@ -3,6 +3,7 @@ import ss from "../lib/snapsaver";
 import memories from "../lib/memories";
 import util from "../lib/util";
 import * as z from "zod";
+import { getSession } from "../lib/auth/session";
 
 // TODO: Queueing for downloads?
 const routes: FastifyPluginCallback = async (fastify) => {
@@ -13,8 +14,10 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({ message: "pong" });
   });
 
-  // Made GET as testing POST request ain't working on iPad
   fastify.get("/local/json/upload", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const filePath = util.getAbsolutePathLocal("data", "memories_history.json");
     const buffer = await util.getLocalFileAsBuffer(filePath);
     const email = util.getUserEmail(req);
@@ -25,7 +28,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
   });
 
   fastify.post("/json/upload", async (req: any, res) => {
-    // TODO: Evaludate fileSize
+    const session = await getSession(req, res);
+    if (!session) return;
+    
     const MEGABYTE = 1000000;
     const options = { limits: { fileSize: 8 * MEGABYTE } };
     const data = await req.file(options);
@@ -38,6 +43,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   // Returns if memories_history.json exists for the user
   fastify.get("/json/status", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
 
     await res.send({
@@ -46,6 +54,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
   });
 
   fastify.post("/memories/download", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
     const schema = z.object({
       startDate: z.string().optional(),
@@ -60,6 +71,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
   });
 
   fastify.get("/memories/links", async (req, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
     const urls = await SnapSaver.getMemoriesDownloadLinks(email);
 
@@ -70,6 +84,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   // TODO: Fix the endpoint convention
   fastify.get("/memories/zip", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
     const message = await SnapSaver.zipMemories(email);
 
@@ -79,6 +96,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
   });
 
   fastify.get("/zip/link", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
     const link = await SnapSaver.getZipDownloadLink(email);
 
@@ -89,6 +109,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   // Returns if memories.zip exists for the user
   fastify.get("/zip/status", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
 
     await res.send({
@@ -97,6 +120,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
   });
 
   fastify.get("/user/memories", async (req: any, res) => {
+    const session = await getSession(req, res);
+    if (!session) return;
+
     const email = util.getUserEmail(req);
     const memories = await Memories.getAllMemories(email);
 
