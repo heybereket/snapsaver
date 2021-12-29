@@ -106,7 +106,7 @@ const Home: NextPage = () => {
       <Container className={`md:mt-4`}>
         <div className="px-4 py-2 bg-navbar mb-5 rounded-lg flex flex-col ">
           <a
-            href={user ? undefined : `${API_URL}/google`}
+            href={user ? undefined : `${API_URL}/auth/google`}
             className="text-center px-5 py-3 text-secondary bg-red-500 rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
           >
             <button>
