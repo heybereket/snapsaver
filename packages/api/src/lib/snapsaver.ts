@@ -4,6 +4,7 @@ import memories from "./memories";
 import storage, { FILE_TYPE } from "./storage";
 import util from "./util";
 import { Memory, Type } from "@prisma/client";
+import { URL } from "url";
 
 interface ISnapSaver {
   Memories: any;
@@ -53,8 +54,22 @@ class SnapSaver implements ISnapSaver {
 
       this.validateMemoriesJson(memoriesJson);
       isValid = true;
-      this.Storage.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
       this.processMemoriesJson(email, memoriesJson);
+
+      memoriesJson["Saved Media"].forEach((memory) => {
+        const downloadLink = new URL(memory["Download Link"]);
+
+        if (!(downloadLink.hostname == "app.snapchat.com")) {
+          isValid = false;
+        } else {
+          this.Storage.uploadDataToS3(
+            buffer,
+            fileName,
+            email,
+            FILE_TYPE.REGULAR
+          );
+        }
+      });
 
       return [isValid, memoriesJson];
     } catch (err) {
