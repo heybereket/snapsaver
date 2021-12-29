@@ -1,31 +1,42 @@
 import { FastifyPluginCallback } from "fastify";
-import * as z from "zod";
 import ss from "../lib/snapsaver";
-
-const SnapSaver = new ss();
+import memories from "../lib/memories";
+import util from "../lib/util";
 
 // TODO: Queueing for downloads?
 const routes: FastifyPluginCallback = async (fastify) => {
+  const SnapSaver = new ss();
+  const Memories = new memories();
+
   fastify.get("/ping", async (req, res) => {
     await res.send({ message: "pong" });
   });
 
   // Made GET as testing POST request ain't working on iPad
-  fastify.get("/local/file/upload", async (req: any, res) => {
-    SnapSaver.uploadMemoriesJsonLocal();
-    await res.send({ message: "done" });
+  fastify.get("/local/json/upload", async (req: any, res) => {
+    const filePath = util.getAbsolutePathLocal("data", "memories_history.json");
+    const buffer = await util.getLocalFileAsBuffer(filePath);
+    const email = util.getUserEmail(req);
+    const [ isValid, result ] = await SnapSaver.uploadMemoriesJson(buffer, email);
+    const numMemories = isValid ? result["Saved Media"]?.length : 0
+
+    await res.send({ isValid, numMemories, email, result });
   });
 
-  fastify.post("/file/upload", async (req: any, res) => {
+  fastify.post("/json/upload", async (req: any, res) => {
+    // TODO: Evaludate fileSize
     const options = { limits: { fileSize: 1000 } };
     const data = await req.file(options);
-    SnapSaver.uploadMemoriesJson(data, req.user.emails?.values()?.next()?.value.value);
+    const email = util.getUserEmail(req);
+    const [ isValid, result ] = await SnapSaver.uploadMemoriesJson(data, email);
+    const numMemories = isValid ? result["Saved Media"]?.length : 0;
 
-    await res.send({ message: "done" });
+    await res.send({ isValid, numMemories, email, result });
   });
 
-  fastify.get("/file/status", async (req: any, res) => {
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+  // Returns if memories_history.json exists for the user
+  fastify.get("/json/status", async (req: any, res) => {
+    const email = util.getUserEmail(req);
 
     await res.send({
       ready: await SnapSaver.isMemoriesJsonAvailable(email),
@@ -33,34 +44,17 @@ const routes: FastifyPluginCallback = async (fastify) => {
   })
 
   fastify.get("/memories/download", async (req: any, res) => {
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
-    const { memories } = await SnapSaver.downloadAllMemories(email);
+    const email = util.getUserEmail(req);
+    SnapSaver.downloadMemories(email);
 
     await res.send({
-      data: memories,
-      isMemoriesJsonValid: SnapSaver.validateMemoriesJson(memories),
+      message: "started"
     });
   });
 
-  fastify.post("/media/download", async (req: any, res) => {
-    const schema = z.object({
-      link: z.string(),
-    });
-
-    const { link } = schema.parse(req.body);
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
-
-    SnapSaver.downloadFileFromSnapchat(link, "images", "test.mp4", email);
-
-    await res.send({
-      success: true,
-      message: link,
-    });
-  });
-
-  fastify.get("/s3/files", async (req, res) => {
-    // const url = await SnapSaver.getS3DownloadLink();
-    const urls = await SnapSaver.getMemoriesDownloadLinks();
+  fastify.get("/memories/links", async (req, res) => {
+    const email = util.getUserEmail(req);
+    const urls = await SnapSaver.getMemoriesDownloadLinks(email);
 
     await res.send({
       urls,
@@ -69,8 +63,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   // TODO: Fix the endpoint convention
   fastify.get("/memories/zip", async (req: any, res) => {
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
-    const message = await SnapSaver.startZipMemories(email);
+    const email = util.getUserEmail(req);
+    const message = await SnapSaver.zipMemories(email);
+    console.log('hi')
 
     await res.send({
       message,
@@ -78,7 +73,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
   })
 
   fastify.get("/zip/link", async (req: any, res) => {
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+    const email = util.getUserEmail(req);
     const link = await SnapSaver.getZipDownloadLink(email);
 
     await res.send({
@@ -86,12 +81,23 @@ const routes: FastifyPluginCallback = async (fastify) => {
     });
   })
 
+  // Returns if memories.zip exists for the user
   fastify.get("/zip/status", async (req: any, res) => {
-    const email = req?.user?.emails?.values()?.next()?.value.value ?? SnapSaver.getDevUserEmail();
+    const email = util.getUserEmail(req);
 
     await res.send({
       ready: await SnapSaver.isZipAvailable(email),
     });
+  })
+
+  fastify.get("/user/memories", async (req: any, res) => {
+    const email = util.getUserEmail(req);
+    const memories = await Memories.getAllMemories(email);
+
+    await res.send({
+      email,
+      memories
+    })
   })
 };
 

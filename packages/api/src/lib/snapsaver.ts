@@ -1,396 +1,256 @@
-import path from "path";
 import axios from "axios";
-import fs from "fs";
-import sharp from "sharp";
 import * as z from "zod";
-import { S3 } from "./connections/aws";
-import { IS_PRODUCTION } from "./constants";
-import archiver from "archiver";
-import { ConfigurationServicePlaceholders } from "aws-sdk/lib/config_service_placeholders";
-import { createContext } from "vm";
-import AdmZip from "adm-zip";
+import memories from "./memories";
+import storage, { FILE_TYPE } from "./storage";
+import util from "./util";
+import { Memory, Type } from "@prisma/client";
 
-enum FILE_TYPE {
-  "MEMORY",
-  "REGULAR",
+interface ISnapSaver {
+  Memories: any;
+  Storage: any;
+  uploadMemoriesJson: (data: any, email: string) => Promise<[boolean, any]>;
+  getMemoriesJson: (email: string, local: boolean) => void;
+  downloadMemories: (email: string) => void;
+  isMemoriesJsonAvailable: (email: string) => Promise<boolean>;
+  isZipAvailable: (email: string) => Promise<boolean>;
+  getZipDownloadLink: (email: string) => Promise<string>;
+  getMemoriesDownloadLinks: (email: string) => Promise<Array<string>>;
 }
 
-class SnapSaver {
-  constructor() {}
+type MemoryRequest = {
+  id: number,
+  email: string,
+  downloadLink: string,
+  fileName: string
+}
 
-  getMemoriesJsonLocal = () => {
-    // TODO: Split this up to local (from file system) and production (from S3)
-    const filePath = this.getAbsolutePath("data", "memories_history.json");
-    return require(filePath);
-  };
+class SnapSaver implements ISnapSaver {
+  Memories: any;
+  Storage: any;
 
-  validateMemoriesJson = (json: any) => {
+  constructor() {
+    this.Memories = new memories();
+    this.Storage = new storage();
+  }
+
+  /**
+   * 1. Validates the provided memories_history.json. If valid:
+   * 2. Uploads the file to S3
+   * 3. Processes file by adding an entry for each link to database
+   * @param {any} data
+   * @param {string} email
+   */
+  public uploadMemoriesJson = async (data: any, email: string): Promise<[boolean, any]> => {
+    let isValid = false;
     try {
-      const schema = z.object({
-        "Saved Media": z.array(
-          z.object({
-            Date: z.string(),
-            "Media Type": z.enum(["PHOTO", "VIDEO"]),
-            "Download Link": z.string(),
-          })
-        ),
-      });
+      const buffer = Buffer.isBuffer(data) ? data : await data.toBuffer();
+      const memoriesJson: JSON = util.bufferToJson(buffer);
+      const fileName = "memories_history.json";
 
-      schema.parse(json);
-      return true;
+      this.validateMemoriesJson(memoriesJson)
+      isValid = true;
+      this.Storage.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
+      this.processMemoriesJson(email, memoriesJson);
+
+      return [isValid, memoriesJson]
     } catch (err) {
-      console.error(err);
-      return false;
+      console.error(`Error uploading memories JSON`, err)
+      return [isValid, err]
     }
   };
 
-  // TODO: Move to util
-  getAbsolutePath = (dir, fileName) => {
-    const relativePath = path.join("./", dir, fileName);
-    return path.resolve(relativePath);
+  /**
+   * Returns the memories_history.json stored for the user (or from local disk if specified)
+   */
+  public getMemoriesJson = async (email: string, local: boolean = false) => {
+    if (local) {
+      const filePath = util.getAbsolutePathLocal("data", "memories_history.json");
+      return require(filePath);
+    }
+
+    return await this.Storage.getMemoriesJsonFromS3(email);
+  }
+
+  /**
+   * Downloads (in parallel) all memories that are PENDING download from Snapchat and saves them to S3
+   *
+   * TODO: Add meta data to image/video so it can be filtered by date in file managers
+   * TODO: Finalize naming scheme for files
+   * TODO: Resuming downloads if failed midway
+   */
+  public downloadMemories = async (email: string) => {
+    try {
+      const memories: Array<Memory> = await this.Memories.getPendingMemories(email);
+      const memoryRequests: Array<object> = memories.map((memory: Memory): MemoryRequest => {
+        return {
+          id: memory.id,
+          email: memory.email,
+          fileName: this.getMediaFileName(memory.date, memory.type),
+          downloadLink: memory.downloadLink
+        }
+      })
+
+      // Wait for all downloads to be resolved
+      Promise.all(memoryRequests.map(this.requestAsync));
+    } catch (err) {
+      console.error(err);
+    }
+
+    return memories;
   };
 
-  getDevUserEmail = () => {
-    // TODO: Add OAuth
-    return IS_PRODUCTION
-      ? "asemagn@gmail.com"
-      : (process.env.DEV_USER_EMAIL as string);
+  /**
+   * Returns whether memories_history.json exists for user
+   */
+  public isMemoriesJsonAvailable = async (email: string): Promise<boolean> => {
+    const fileKey = this.Storage.getPathS3(email, FILE_TYPE.REGULAR, "memories_history.json");
+    return await this.Storage.objectExistsInS3(fileKey);
+  }
+
+  /**
+   * Returns whether memories.zip exists for user
+   */
+  public isZipAvailable = async (email: string): Promise<boolean> => {
+    const fileKey = this.Storage.getPathS3(email, FILE_TYPE.REGULAR, "memories.zip");
+    return await this.Storage.objectExistsInS3(fileKey);
+  }
+
+  /**
+   * Returns link to download memories.zip directly from S3
+   */
+  public getZipDownloadLink = async (email: string): Promise<string> => {
+    const fileKey = this.Storage.getPathS3(email, FILE_TYPE.REGULAR, "memories.zip");
+    return await this.Storage.getSignedDownloadLinkS3(fileKey)
+  }
+
+  /**
+   * Creates a Zip directory of users memories, if any files available.
+   */
+  public zipMemories = async (email: string): Promise<string> => {
+    // Get list of files in users memory directory
+    const dir = this.Storage.getPathS3(email, FILE_TYPE.MEMORY);
+    const objects = await this.Storage.getObjectsInS3Directory(dir);
+
+    if (objects["Contents"]?.length == 0) return "no files found";
+
+    this.startZipMemories(email, objects);
+    return "started"
   };
 
-  uploadMemoriesJsonLocal = async () => {
-    const fileName = "memories_history.json";
+  /**
+   * Returns list of URLs to download all memories media from S3 for user by email
+   */
+  public getMemoriesDownloadLinks = async (email: string): Promise<Array<string>> => {
+    const dir = this.Storage.getPathS3(email, FILE_TYPE.MEMORY);
+    const objects = await this.Storage.getObjectsInS3Directory(dir);
 
-    this.uploadLocalFileToS3(
-      this.getAbsolutePath("data", fileName),
-      fileName,
-      this.getDevUserEmail(),
-      FILE_TYPE.REGULAR
+    // Wait for all links to be resolved
+    return Promise.all(
+      objects["Contents"]?.map(async (object: any): Promise<string> => {
+        return await this.Storage.getSignedDownloadLinkS3(object["Key"] || "");
+      })
     );
   };
 
-  uploadMemoriesJson = async (data: any, email: string) => {
-    const buffer = await data.toBuffer();
+  /**
+   * Checks if provided object matches the schema of a valid memories_history.json file
+   * @param {json} any
+   * @throws {Error}
+   */
+  private validateMemoriesJson = (json: any) => {
+    const schema = z.object({
+      "Saved Media": z.array(
+        z.object({
+          Date: z.string(),
+          "Media Type": z.enum(["PHOTO", "VIDEO"]),
+          "Download Link": z.string(),
+        })
+      ),
+    });
 
-    this.uploadFileToS3(
-      buffer,
-      "memories_history.json",
-      email,
-      FILE_TYPE.REGULAR
-    );
+    schema.parse(json);
   };
 
-  getDownloadLinkFromSnapchat = (
-    url: string,
-    dir: string,
-    fileName: string,
-    email: string,
-    last?: boolean
-  ) => {
-    // new Promise<void>((resolve, reject) => {
-      axios({
-        method: "post",
-        url,
+  /**
+   * Adds each link in memories_history.json to Postgres
+   */
+  private processMemoriesJson = async (email: string, json: JSON) => {
+    // Extracts image URL from Snapchat's link
+    const getDownloadLinkFromSnapchat = async (url: string) => {
+      const res = await axios({
+        method: "post", url,
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-      }).then((res) => {
-        const memoryURL = res.data;
-        this.downloadFileFromSnapchat(memoryURL, dir, fileName, email, last);
-      });
-    // });
-  };
+      })
 
-  // TODO: Add meta data to image? So it can be filtered by date
-  // TODO: Decide naming scheme for files
-  // TODO: What to do if memories download fails midway
-  downloadFileFromSnapchat = (
-    url: string,
-    dir: string,
-    fileName: string,
-    email: string, 
-    last?: boolean
-  ) => {
-    // TODO: Check if file already exists
-      axios({
-        method: "get",
-        url,
-        responseType: "arraybuffer",
-      }).then((res) => {
+      return res.data;
+    };
+
+    const memories = json["Saved Media"] as Array<any>;
+
+    memories.forEach(async (memory: any) => {
+      const snapchatLink = memory["Download Link"];
+      const downloadLink = await getDownloadLinkFromSnapchat(snapchatLink);
+      this.Memories.addOrUpdateMemory(email, memory["Date"], memory["Media Type"], snapchatLink, downloadLink)
+    });
+  }
+
+  /**
+   * Asynchronously download the actual image/video file for this memory and save it to S3
+   */
+  private requestAsync = (memoryRequest: MemoryRequest) => {
+    return new Promise((resolve, reject) => {
+      const { id, email, downloadLink, fileName } = memoryRequest;
+      axios({ method: "get", url: downloadLink, responseType: "arraybuffer" }).then((res) => {
         try {
-          return new Promise<void>((resolve, reject) => {
-            // TODO: How to efficiently do this? Temporarily save file til it's uploaded to S3?
-            const buffer = Buffer.from(res.data, "binary");
-
-            // this is so jank. passing a callback to download zip memories only if this file is the last one in the index of files being downloaded.
-            // con (one of many): if there's a failure with the last file, may not make it to the point of zipping.
-            const callback = last == true ? () => { this.startZipMemories(email) } : null;
-            this.uploadFileToS3(buffer, fileName, email, FILE_TYPE.MEMORY, callback);
-          });
-        } catch (error_1) {
-          console.log(
-            `Something happened while downloading ${fileName}: ${error_1}`
-          );
+          const buffer = Buffer.from(res.data, "binary");
+          this.Storage.uploadDataToS3(buffer, fileName, email, FILE_TYPE.MEMORY, id);
+          console.log(`Successfully downloaded ${fileName}`);
+          resolve("done")
+        } catch (err) {
+          console.error(`Error while downloading ${fileName}: ${err}`);
+          reject(err)
         }
       });
-  };
-
-  getS3FileDir = (email: string, type: FILE_TYPE) => {
-    return (
-      "users" + "/" + email + (type == FILE_TYPE.MEMORY ? "/memories" : "")
-    );
-  };
-
-  getMemoriesJsonFromS3 = async (email: string) => {
-    const fileDir = this.getS3FileDir(email, FILE_TYPE.REGULAR);
-    const s3FilePath = fileDir + "/memories_history.json";
-
-    const options = {
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: s3FilePath,
-    };
-
-    try {
-      const data = await S3.getObject(options).promise();
-      const fileContents = data.Body?.toString();
-      return fileContents ? JSON.parse(fileContents) : null;
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  uploadLocalFileToS3 = (
-    localFilePath: string,
-    fileName: string,
-    email: string,
-    type: FILE_TYPE
-  ) => {
-    fs.readFile(localFilePath, async (err, data) => {
-      if (err) throw err;
-
-      this.uploadFileToS3(data, fileName, email, type);
     });
   };
 
-  uploadFileToS3 = async (
-    uploadData: any,
-    fileName: string,
-    email: string,
-    type: FILE_TYPE,
-    callback?: any
-  ) => {
-    const fileDir = this.getS3FileDir(email, type);
-    const s3FilePath = fileDir + "/" + fileName;
+  /**
+   * Creates a Zip directory of users memories. Currently: downloads available media from /memories
+   * directory to local disk, zips em up, and uploads Zip file back to S3.
+   */
+  private startZipMemories = async (email: string, objects: Array<any>): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Download all memory media files from S3
+        // TODO: For now getting first 10 til we figure out disk challenge
+        const downloadDir = util.createDirIfNotExists("./temp/memories/" + email);
+        objects["Contents"]?.slice(0, 10).forEach(async (object: any) => {
+          const fileKey = object["Key"] as string;
+          this.Storage.downloadFileFromS3(downloadDir, fileKey);
+        });
 
-    // TODO: Re-evaluate security of S3
-    const options = {
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: s3FilePath,
-      Body: uploadData,
-    };
-
-    S3.upload(options, (s3Err, data) => {
-      if (s3Err) throw s3Err;
-      console.log(`File uploaded to S3 successfully: ${data.Location}`);
-
-      if (callback) callback()
-    });
-  };
-
-  // This is getting outta hand (addis)
-  iterateAndDownload = async (memories: any, email: any) => {
-    memories["Saved Media"].forEach((memory, idx, array) => {
-      const url = memory["Download Link"];
-      const dir = "images";
-      const fileName = `${memory["Date"]}${
-        memory["Media Type"] == "PHOTO" ? ".jpg" : ".mp4"
-      }`;
-
-      this.getDownloadLinkFromSnapchat(
-        url,
-        dir,
-        fileName.replaceAll(":", "-"),
-        email,
-        idx == array.length - 1 // last file
-      );
-
-      if (idx == array.length - 1) {
-        // then set flag in db to ready
+        // Create compressed ZIP file and uplaod to S3
+        const zipDir = util.createDirIfNotExists("./temp/zips/" + email);
+        const zipPath = zipDir + "/memories.zip";
+        const zipBuffer: Buffer | undefined = await util.zipDirectory(downloadDir, zipPath);
+        if (zipBuffer) this.Storage.uploadDataToS3(zipBuffer, "memories.zip", email, FILE_TYPE.REGULAR);
+        // deleteDir(downloadDir)
+        resolve()
+      } catch (err) {
+        console.error(`Error zipping memories`, err);
+        reject();
       }
-    });
+    })
   }
 
-  downloadAllMemories = async (email: string) => {
-    // TODO: Check if file exists
-    const memories = await this.getMemoriesJsonFromS3(email);
-
-    await this.iterateAndDownload(memories , email);
-
-    return { memories };
-  };
-
-  objectExistsInS3 = async (fileKey: string) => {
-    try {
-      const options = {
-        Bucket: process.env.AWS_BUCKET_NAME as string,
-        Key: fileKey,
-      };
-
-      await S3.headObject(options).promise()
-      return true;
-    } catch (err) {
-      if (err.statusCode === 404) console.error(`File not found in S3: ${fileKey}`)
-
-      return false;
-    }
+  /**
+   * Returns file name with appropriate extension
+   */
+  private getMediaFileName = (date: Date, type: Type): string => {
+    return `${date}${type == "PHOTO" ? ".jpg" : ".mp4"}`.replaceAll(":", "-");
   }
-
-  getS3DownloadLink = async (fileKey: string) => {
-    try {
-      if (!await this.objectExistsInS3(fileKey)) return null;
-
-      const options = {
-        Bucket: process.env.AWS_BUCKET_NAME as string,
-        Key: fileKey,
-      };
-
-      const url = S3.getSignedUrl("getObject", options);
-      return url;
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  isMemoriesJsonAvailable = async (email: string) => {
-    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories_history.json";
-
-    return await this.objectExistsInS3(fileKey);
-  }
-
-  isZipAvailable = async (email: string) => {
-    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
-
-    return await this.objectExistsInS3(fileKey);
-  }
-
-  getZipDownloadLink = (email: string) => {
-    const fileKey = this.getS3FileDir(email, FILE_TYPE.REGULAR) + "/memories.zip";
-
-    return this.getS3DownloadLink(fileKey)
-  }
-
-  // List of URLs to download the files from S3
-  getMemoriesDownloadLinks = async () => {
-    const dir =
-      this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
-
-    const options = {
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Prefix: dir,
-    };
-
-    // TODO: Handle not-found cases
-    const objects = await S3.listObjectsV2(options).promise();
-    return objects["Contents"]?.map((object) => {
-      return this.getS3DownloadLink(object["Key"] || "");
-    });
-  };
-
-  // TODO: This function is redudant rn but will use in re-factor
-  startZipMemories = (email: string) => {
-    return this.downloadAllFilesFromS3(email);
-  };
-
-  zipDirectory = (sourceDir: string, outPath: string) => {
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    const stream = fs.createWriteStream(outPath);
-
-    return new Promise<void>((resolve, reject) => {
-      archive
-        .directory(sourceDir, false)
-        .on("error", (err) => reject(err))
-        .pipe(stream);
-
-      stream.on("close", () => resolve());
-      archive.finalize();
-    });
-  };
-
-  zipDirectoryV2 = (sourceDir: string, outPath: string, email: string) => {
-      const zip = new AdmZip();
-      console.log('sourceDir', sourceDir)
-      zip.addLocalFolder(sourceDir);
-      zip.writeZip(outPath);
-      console.log(`Created ${outPath} successfully`);
-
-      this.uploadLocalFileToS3(
-        outPath,
-        "memories.zip",
-        email,
-        FILE_TYPE.REGULAR
-      );
-  }
-
-  getObjectsInS3Directory = async () => {
-    const s3Dir =
-      this.getS3FileDir(this.getDevUserEmail(), FILE_TYPE.MEMORY) + "/";
-
-    const options = {
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Prefix: s3Dir,
-    };
-
-    // TODO: Handle not-found cases
-    return await S3.listObjectsV2(options).promise();
-  };
-
-  // Download a single file from S3
-  downloadFileFromS3 = async (dir, fileKey) => {
-    console.log("Trying to download file from S3", fileKey);
-
-    const fileName = path.basename(fileKey);
-    const destPath = dir + "/" + fileName;
-
-    const readStream = S3.getObject({
-      Bucket: process.env.AWS_BUCKET_NAME as string,
-      Key: fileKey,
-    }).createReadStream();
-
-    const writeStream = fs.createWriteStream(destPath);
-    readStream.pipe(writeStream);
-  };
-
-  // This just does it recurssively
-  downloadAllFilesFromS3 = async (email: string) => {
-    // Get list of files in users memory directory
-    const objects = await this.getObjectsInS3Directory();
-    if (objects["Contents"]?.length == 0) {
-      return "no files found";
-    }
-
-    // Create directories for downloading memories and saving Zip file
-    const downloadDir = "./temp/memories/" + email;
-    fs.mkdirSync(downloadDir, { recursive: true });
-    const zipDir = "./temp/zips/" + email;
-    fs.mkdirSync(zipDir, { recursive: true });
-
-    // Download each memory media
-    // TODO: For now getting first 10 til we figure out disk challenge
-    objects["Contents"]?.slice(0, 10).forEach(async (object) => {
-      const fileKey = object["Key"] as string;
-      this.downloadFileFromS3(downloadDir, fileKey);
-    });
-
-    // Post-processing
-    const zipPath = zipDir + "/memories.zip";
-    this.zipDirectoryV2(downloadDir, zipPath, email);
-    // this.deleteDir(downloadDir)
-
-    return "done";
-  };
-
-  deleteDir = (dir) => {
-    fs.rmdirSync(dir, { recursive: true });
-  };
 }
 
 export default SnapSaver;
