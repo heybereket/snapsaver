@@ -51,9 +51,8 @@ const Home: NextPage = () => {
 
   const DownloadHandler = async () => {
     await axios
-      .post(`${API_URL}/memories/download`, {
+      .post(`${API_URL}/memories/download`, {}, {
         withCredentials: true,
-        data: {},
       })
       .catch((error) => {
         console.log(error.message);
