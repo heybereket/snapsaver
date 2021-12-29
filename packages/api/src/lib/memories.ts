@@ -1,5 +1,6 @@
 import { Status, Type } from "@prisma/client";
 import { prisma } from "./connections/prisma";
+import * as log from '../lib/log';
 
 class Memories {
     getManyWhere = async (query: object) => {
@@ -8,7 +9,7 @@ class Memories {
                 where: query,
             });
         } catch (err) {
-            console.error(`Error in getManyWhere`, err);
+            log.error(`Error in getManyWhere`, err);
         }
     }
 
@@ -38,7 +39,7 @@ class Memories {
                 data: entry,
             });
         } catch (err) {
-            console.error(err);
+            log.error(err);
         }
     }
 
@@ -49,7 +50,7 @@ class Memories {
                 data: { status: Status.SUCCESS },
             })
         } catch (err) {
-            console.error(err);
+            log.error(err);
         }
     }
 }

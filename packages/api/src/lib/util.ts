@@ -3,6 +3,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import AdmZip from "adm-zip";
 import { IS_PRODUCTION } from "./constants";
+import * as log from '../lib/log';
 
 const util = {
     // Only used if email not provided in request. TODO: Use only in development
@@ -26,7 +27,7 @@ const util = {
         try {
             return await fsPromises.readFile(filePath);
         } catch (err) {
-            console.error(`Error reading local file ${filePath}`, err);
+            log.error(`Error reading local file ${filePath}`, err);
         }
     },
 
@@ -37,11 +38,11 @@ const util = {
             const zip = new AdmZip();
             zip.addLocalFolder(zipInputDirPath);
             zip.writeZip(zipOutputFilePath);
-            console.log(`Created ${zipOutputFilePath} successfully`);
+            log.success(`Created ${zipOutputFilePath} successfully`);
             const absolutePath = path.resolve(zipOutputFilePath);
             return await util.getLocalFileAsBuffer(absolutePath);
         } catch (err) {
-            console.error(`Error zipping directory ${zipInputDirPath}`, err);
+            log.error(`Error zipping directory ${zipInputDirPath}`, err);
         }
     }
 }

@@ -5,6 +5,7 @@ import storage, { FILE_TYPE } from "./storage";
 import util from "./util";
 import { Memory, Type } from "@prisma/client";
 import { URL } from "url";
+import * as log from '../lib/log';
 
 interface ISnapSaver {
   Memories: any;
@@ -73,7 +74,7 @@ class SnapSaver implements ISnapSaver {
 
       return [isValid, memoriesJson];
     } catch (err) {
-      console.error(`Error uploading memories JSON`, err);
+      log.error(`Error uploading memories JSON`, err);
       return [isValid, err];
     }
   };
@@ -151,7 +152,7 @@ class SnapSaver implements ISnapSaver {
       // Wait for all downloads to be resolved
       Promise.all(memoryRequests.map(this.requestAsync));
     } catch (err) {
-      console.error(err);
+      log.error(err);
     }
 
     return memories;
@@ -295,10 +296,10 @@ class SnapSaver implements ISnapSaver {
             FILE_TYPE.MEMORY,
             id
           );
-          console.log(`Successfully downloaded ${fileName}`);
+          log.success(`Successfully downloaded ${fileName}`);
           resolve("done");
         } catch (err) {
-          console.error(`Error while downloading ${fileName}: ${err}`);
+          log.error(`Error while downloading ${fileName}: ${err}`);
           reject(err);
         }
       });
@@ -342,7 +343,7 @@ class SnapSaver implements ISnapSaver {
         // deleteDir(downloadDir)
         resolve();
       } catch (err) {
-        console.error(`Error zipping memories`, err);
+        log.error(`Error zipping memories`, err);
         reject();
       }
     });

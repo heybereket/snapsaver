@@ -2,15 +2,15 @@ import { red, green, yellow, magenta } from "colorette";
 
 export const colors = {
   error: red("error") + " -",
-  ready: green("ready") + " -",
+  success: green("ready") + " -",
   warn: yellow("warn") + " -",
   event: magenta("event") + " -",
   info: magenta("info") + " -",
 };
 
 // Ready, no issues
-export const ready = (...message: unknown[]) => {
-  console.log(colors.ready, ...message);
+export const success = (...message: unknown[]) => {
+  console.log(colors.success, ...message);
 };
 
 // Uh oh, there were issues found

@@ -81,5 +81,5 @@ fastify.addHook("onRequest", (request, reply, done) => {
 
 fastify.listen(PORT, "0.0.0.0", (err, address) => {
   if (err) throw err;
-  log.ready(`API > Running on ${address}`);
+  log.success(`API > Running on ${address}`);
 });
