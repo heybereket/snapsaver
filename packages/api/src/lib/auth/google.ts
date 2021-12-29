@@ -7,7 +7,7 @@ export const googleStrategy = () => {
     {
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: `${API_URL}/google/callback`,
+      callbackURL: `${API_URL}/auth/google/callback`,
     },
     async function (accessToken, refreshToken, profile, done) {
       const currentUser = await prisma.user.findUnique({
