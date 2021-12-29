@@ -2,6 +2,7 @@ import { FastifyPluginCallback } from "fastify";
 import ss from "../lib/snapsaver";
 import memories from "../lib/memories";
 import util from "../lib/util";
+import * as z from "zod";
 
 // TODO: Queueing for downloads?
 const routes: FastifyPluginCallback = async (fastify) => {
@@ -17,8 +18,8 @@ const routes: FastifyPluginCallback = async (fastify) => {
     const filePath = util.getAbsolutePathLocal("data", "memories_history.json");
     const buffer = await util.getLocalFileAsBuffer(filePath);
     const email = util.getUserEmail(req);
-    const [ isValid, result ] = await SnapSaver.uploadMemoriesJson(buffer, email);
-    const numMemories = isValid ? result["Saved Media"]?.length : 0
+    const [isValid, result] = await SnapSaver.uploadMemoriesJson(buffer, email);
+    const numMemories = isValid ? result["Saved Media"]?.length : 0;
 
     await res.send({ isValid, numMemories, email, result });
   });
@@ -28,7 +29,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
     const options = { limits: { fileSize: 1000 } };
     const data = await req.file(options);
     const email = util.getUserEmail(req);
-    const [ isValid, result ] = await SnapSaver.uploadMemoriesJson(data, email);
+    const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email);
     const numMemories = isValid ? result["Saved Media"]?.length : 0;
 
     await res.send({ isValid, numMemories, email, result });
@@ -41,14 +42,19 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({
       ready: await SnapSaver.isMemoriesJsonAvailable(email),
     });
-  })
+  });
 
-  fastify.get("/memories/download", async (req: any, res) => {
+  fastify.post("/memories/download", async (req: any, res) => {
     const email = util.getUserEmail(req);
-    SnapSaver.downloadMemories(email);
+    const schema = z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    });
+    const { startDate, endDate } = schema.parse(req.body);
+    SnapSaver.downloadMemories(email, startDate as string, endDate as string);
 
     await res.send({
-      message: "started"
+      message: "started",
     });
   });
 
@@ -59,18 +65,18 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({
       urls,
     });
-  })
+  });
 
   // TODO: Fix the endpoint convention
   fastify.get("/memories/zip", async (req: any, res) => {
     const email = util.getUserEmail(req);
     const message = await SnapSaver.zipMemories(email);
-    console.log('hi')
+    console.log("hi");
 
     await res.send({
       message,
     });
-  })
+  });
 
   fastify.get("/zip/link", async (req: any, res) => {
     const email = util.getUserEmail(req);
@@ -79,7 +85,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({
       link,
     });
-  })
+  });
 
   // Returns if memories.zip exists for the user
   fastify.get("/zip/status", async (req: any, res) => {
@@ -88,7 +94,7 @@ const routes: FastifyPluginCallback = async (fastify) => {
     await res.send({
       ready: await SnapSaver.isZipAvailable(email),
     });
-  })
+  });
 
   fastify.get("/user/memories", async (req: any, res) => {
     const email = util.getUserEmail(req);
@@ -96,9 +102,9 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
     await res.send({
       email,
-      memories
-    })
-  })
+      memories,
+    });
+  });
 };
 
 export default routes;

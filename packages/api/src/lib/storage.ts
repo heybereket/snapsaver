@@ -118,7 +118,7 @@ class Storage implements IStorage {
   };
 
   // Download a single file from S3
-  public downloadFileFromS3 = async (dir, fileKey) => {
+  public downloadFileFromS3 = async (dir: string, fileKey: string) => {
     try {
       console.log("Trying to download file from S3", fileKey);
 
