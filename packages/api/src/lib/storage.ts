@@ -3,7 +3,7 @@ import path from "path";
 import { S3 } from "./connections/aws";
 import { S3_BUCKET } from "./constants";
 import memories from "../lib/memories";
-import * as log from '../lib/log';
+import * as log from "../lib/log";
 export enum FILE_TYPE {
   "MEMORY",
   "REGULAR",
@@ -12,11 +12,18 @@ export enum FILE_TYPE {
 interface IStorage {
   getPathS3: (email: string, type: FILE_TYPE, fileName?: string) => string;
   getMemoriesJsonFromS3: (email: string) => Promise<JSON | null | undefined>;
-  uploadDataToS3: (data: any, fileName: string, email: string, type: FILE_TYPE) => void;
-  getSignedDownloadLinkS3: (fileKey: string) => Promise<string | null | undefined>;
+  uploadDataToS3: (
+    data: any,
+    fileName: string,
+    email: string,
+    type: FILE_TYPE
+  ) => void;
+  getSignedDownloadLinkS3: (
+    fileKey: string
+  ) => Promise<string | null | undefined>;
   objectExistsInS3: (fileKey: string) => Promise<boolean>;
   getObjectsInS3Directory: (dir: string) => Promise<any>; // TODO: Change any in return
-};
+}
 
 class Storage implements IStorage {
   Memories: any;
@@ -25,14 +32,30 @@ class Storage implements IStorage {
     this.Memories = new memories();
   }
 
-  public getPathS3 = (email: string, type: FILE_TYPE, fileName?: string): string => {
+  public getPathS3 = (
+    email: string,
+    type: FILE_TYPE,
+    fileName?: string
+  ): string => {
     // Memory media files stored at: /users/<email>/memories/<fileName>
     // Other files stored at: /users/<email>/<fileName>
-    return "".concat("users", "/", email, type == FILE_TYPE.MEMORY ? "/memories/" : "/", fileName ?? "");
+    return "".concat(
+      "users",
+      "/",
+      email,
+      type == FILE_TYPE.MEMORY ? "/memories/" : "/",
+      fileName ?? ""
+    );
   };
 
-  public getMemoriesJsonFromS3 = async (email: string): Promise<JSON | null | undefined> => {
-    const s3FilePath = this.getPathS3(email, FILE_TYPE.REGULAR, "memories_history.json");
+  public getMemoriesJsonFromS3 = async (
+    email: string
+  ): Promise<JSON | null | undefined> => {
+    const s3FilePath = this.getPathS3(
+      email,
+      FILE_TYPE.REGULAR,
+      "memories_history.json"
+    );
 
     const options = {
       Bucket: S3_BUCKET,
@@ -48,7 +71,13 @@ class Storage implements IStorage {
     }
   };
 
-  public uploadDataToS3 = async (data: any, fileName: string, email: string, type: FILE_TYPE, memoryId?: number) => {
+  public uploadDataToS3 = async (
+    data: any,
+    fileName: string,
+    email: string,
+    type: FILE_TYPE,
+    memoryId?: number
+  ) => {
     const s3FilePath = this.getPathS3(email, type, fileName);
 
     // TODO: Re-evaluate security of S3
@@ -72,9 +101,11 @@ class Storage implements IStorage {
     }
   };
 
-  public getSignedDownloadLinkS3 = async (fileKey: string): Promise<string | null | undefined> => {
+  public getSignedDownloadLinkS3 = async (
+    fileKey: string
+  ): Promise<string | null | undefined> => {
     try {
-      if (!await this.objectExistsInS3(fileKey)) return null;
+      if (!(await this.objectExistsInS3(fileKey))) return null;
 
       const options = {
         Bucket: S3_BUCKET,
@@ -95,13 +126,13 @@ class Storage implements IStorage {
         Key: fileKey,
       };
 
-      await S3.headObject(options).promise()
+      await S3.headObject(options).promise();
       return true;
     } catch (err) {
-      if (err.statusCode === 404) log.error(`File not found in S3: ${fileKey}`)
+      if (err.statusCode === 404) log.error(`File not found in S3: ${fileKey}`);
       return false;
     }
-  }
+  };
 
   public getObjectsInS3Directory = async (dir: string): Promise<any> => {
     try {

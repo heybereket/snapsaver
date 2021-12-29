@@ -5,7 +5,7 @@ import storage, { FILE_TYPE } from "./storage";
 import util from "./util";
 import { Memory, Type } from "@prisma/client";
 import { URL } from "url";
-import * as log from '../lib/log';
+import * as log from "../lib/log";
 
 interface ISnapSaver {
   Memories: any;
