@@ -38,7 +38,7 @@ const Home: NextPage = () => {
     form.append("image", e.target.files?.[0] as string);
 
     await axios
-      .post(`${API_URL}/file/upload`, form, {
+      .post(`${API_URL}/json/upload`, form, {
         withCredentials: true,
         headers: {
           "Content-Type": `multipart/form-data`,
@@ -83,7 +83,7 @@ const Home: NextPage = () => {
 
   const checkExistingUpload = async () => {
     return await axios
-      .get(`${API_URL}/file/status`, {
+      .get(`${API_URL}/json/status`, {
         withCredentials: true,
       })
       .then((res) => setExistingUpload(res.data.ready))
