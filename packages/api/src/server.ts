@@ -11,7 +11,7 @@ import fs from "fs";
 import { join } from "path";
 import { PORT } from "./lib/constants";
 import * as log from "./lib/log";
-import { googleStrategy } from "./lib/google";
+import { googleStrategy } from "./lib/auth/google";
 
 const fastify = Fastify();
 
@@ -58,12 +58,16 @@ fastifyPassport.registerUserSerializer(async (user, req) => {
 
 fastifyPassport.use("google", googleStrategy());
 
-// Default Route
+// Default Routes
 fastify.get("/", async (req, res) => {
   res.send({
     name: "Snapsaver API",
     version: "1.0.0",
   });
+});
+
+fastify.get("/ping", async (req, res) => {
+  await res.send({ message: "pong" });
 });
 
 fastify.addHook("onRequest", (request, reply, done) => {

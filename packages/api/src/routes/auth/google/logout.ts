@@ -1,6 +1,6 @@
-import { FastifyPluginCallback } from "fastify";
+import { FastifyInstance } from "fastify";
 
-const googleLogout: FastifyPluginCallback = async (fastify) => {
+export default (fastify: FastifyInstance, opts, done) => {
   fastify.get("/logout", async (req, res) => {
     req.logout();
     res.send({
@@ -8,6 +8,6 @@ const googleLogout: FastifyPluginCallback = async (fastify) => {
       message: "Successfully logged out",
     });
   });
-};
 
-export default googleLogout;
+  done();
+};

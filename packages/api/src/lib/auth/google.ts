@@ -1,6 +1,6 @@
 import { Strategy } from "passport-google-oauth20";
-import { prisma } from "./connections/prisma";
-import { API_URL } from "./constants";
+import { prisma } from "../connections/prisma";
+import { API_URL } from "../constants";
 
 export const googleStrategy = () => {
   return new Strategy(

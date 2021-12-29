@@ -1,8 +1,8 @@
-import { FastifyPluginCallback } from "fastify";
+import { FastifyInstance } from "fastify";
 import fastifyPassport from "fastify-passport";
-import { CLIENT_URL } from "../../lib/constants";
+import { CLIENT_URL } from "../../../lib/constants";
 
-const googleCallback: FastifyPluginCallback = async (fastify) => {
+export default (fastify: FastifyInstance, opts, done) => {
   fastify.get(
     "/callback",
     {
@@ -15,6 +15,6 @@ const googleCallback: FastifyPluginCallback = async (fastify) => {
       res.redirect(CLIENT_URL);
     }
   );
-};
 
-export default googleCallback;
+  done();
+};
