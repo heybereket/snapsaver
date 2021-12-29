@@ -26,7 +26,8 @@ const routes: FastifyPluginCallback = async (fastify) => {
 
   fastify.post("/json/upload", async (req: any, res) => {
     // TODO: Evaludate fileSize
-    const options = { limits: { fileSize: 1000 } };
+    const MEGABYTE = 1000000;
+    const options = { limits: { fileSize: 8 * MEGABYTE } };
     const data = await req.file(options);
     const email = util.getUserEmail(req);
     const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email);
