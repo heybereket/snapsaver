@@ -121,9 +121,7 @@ class SnapSaver implements ISnapSaver {
     endDate: string
   ) => {
     try {
-      const memories: Memory[] = await this.Memories.getPendingMemories(
-        email
-      );
+      const memories: Memory[] = await this.Memories.getPendingMemories(email);
       const filteredMemories = await this.filterMemories(
         memories,
         new Date(startDate),
@@ -249,13 +247,17 @@ class SnapSaver implements ISnapSaver {
       // Applies concurrency limit
       return limit(async () => {
         const snapchatLink = memory["Download Link"];
-        const download = {}
+        const download = {};
 
         try {
-          download["downloadLink"] = await this.getDownloadLinkFromSnapchat(snapchatLink);
+          // TODO: Don't do this if the record already exists
+          download["downloadLink"] = await this.getDownloadLinkFromSnapchat(
+            snapchatLink
+          );
+          download["status"] = Status.PENDING;
         } catch {
-          download["downloadLink"] = '';
-          download["status"] = Status.FAILED
+          download["downloadLink"] = "";
+          download["status"] = Status.FAILED;
         }
 
         return {
@@ -264,13 +266,27 @@ class SnapSaver implements ISnapSaver {
           type: memory["Media Type"],
           snapchatLink,
           downloadLink: download["downloadLink"],
-          status: download["status"]
+          status: download["status"],
         };
       });
     });
 
-    const processedMemories = await Promise.all(promises);
-    this.Memories.createMemories(processedMemories);
+    const CHUNK_SIZE = 100;
+    const chunks = util.sliceIntoChunks(promises, CHUNK_SIZE);
+
+    chunks.forEach(async (chunk, index) => {
+      if (index == 0)
+        log.event(
+          `Started extracting download links, ${CHUNK_SIZE} at a time.`
+        );
+
+      const processedMemories = await Promise.all(chunk);
+      this.Memories.createMemories(processedMemories);
+      log.success(`Procressed chunk ${index + 1}/${chunks.length}`);
+
+      if (index == chunks.length - 1)
+        log.event(`Finished extracting download links to Postgres`);
+    });
   };
 
   /**

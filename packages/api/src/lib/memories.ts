@@ -23,15 +23,14 @@ class Memories {
 
   createMemories = async (memories: any[]) => {
     try {
-      console.log("memories", memories)
       return await prisma.memory.createMany({
         data: memories,
         skipDuplicates: true,
-      })
+      });
     } catch (err) {
       log.error(err);
     }
-  }
+  };
 
   addOrUpdateMemory = async (
     email: string,
