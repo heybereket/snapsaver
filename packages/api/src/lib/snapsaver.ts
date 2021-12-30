@@ -55,22 +55,16 @@ class SnapSaver implements ISnapSaver {
 
       this.validateMemoriesJson(memoriesJson);
       isValid = true;
+
+      // Upload valid memories_history.json to S3
+      this.Storage.uploadDataToS3(
+        buffer,
+        fileName,
+        email,
+        FILE_TYPE.REGULAR
+      );
+
       this.processMemoriesJson(email, memoriesJson);
-
-      memoriesJson["Saved Media"].forEach((memory) => {
-        const downloadLink = new URL(memory["Download Link"]);
-
-        if (!(downloadLink.hostname == "app.snapchat.com")) {
-          isValid = false;
-        } else {
-          this.Storage.uploadDataToS3(
-            buffer,
-            fileName,
-            email,
-            FILE_TYPE.REGULAR
-          );
-        }
-      });
 
       return [isValid, memoriesJson];
     } catch (err) {
@@ -236,7 +230,11 @@ class SnapSaver implements ISnapSaver {
         z.object({
           Date: z.string(),
           "Media Type": z.enum(["PHOTO", "VIDEO"]),
-          "Download Link": z.string(),
+          "Download Link": z
+            .string()
+            .refine((link) => new URL(link).hostname == "app.snapchat.com", {
+              message: "Download links must have hostname: app.snapchat.com",
+            }),
         })
       ),
     });
