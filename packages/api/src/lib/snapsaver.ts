@@ -243,32 +243,9 @@ class SnapSaver implements ISnapSaver {
   private processMemoriesJsonInParallel = async (email: string, json: JSON) => {
     const memories = json["Saved Media"] as any[];
 
-    let promises = memories.map((memory: Memory) => {
+    let promises = memories.map((memory: any) => {
       // Applies concurrency limit
-      return limit(async () => {
-        const snapchatLink = memory["Download Link"];
-        const download = {};
-
-        try {
-          // TODO: Don't do this if the record already exists
-          download["downloadLink"] = await this.getDownloadLinkFromSnapchat(
-            snapchatLink
-          );
-          download["status"] = Status.PENDING;
-        } catch {
-          download["downloadLink"] = "";
-          download["status"] = Status.FAILED;
-        }
-
-        return {
-          email,
-          date: new Date(memory["Date"]),
-          type: memory["Media Type"],
-          snapchatLink,
-          downloadLink: download["downloadLink"],
-          status: download["status"],
-        };
-      });
+      return limit(async () => this.getMemoryObjectToSave(email, memory));
     });
 
     const CHUNK_SIZE = 100;
@@ -276,17 +253,43 @@ class SnapSaver implements ISnapSaver {
 
     chunks.forEach(async (chunk, index) => {
       if (index == 0)
-        log.event(
-          `Started extracting download links, ${CHUNK_SIZE} at a time.`
-        );
+        log.event(`Started extracting links, ${CHUNK_SIZE} at a time.`);
 
       const processedMemories = await Promise.all(chunk);
       this.Memories.createMemories(processedMemories);
       log.success(`Procressed chunk ${index + 1}/${chunks.length}`);
 
       if (index == chunks.length - 1)
-        log.event(`Finished extracting download links to Postgres`);
+        log.event(`Finished extracting links to Postgres`);
     });
+  };
+
+  /**
+   * Converts a memory entry in memories JSON to an object Memory table expects
+   */
+  private getMemoryObjectToSave = async (email: string, memory: any) => {
+    const snapchatLink = memory["Download Link"];
+    const download = {};
+
+    try {
+      // TODO: Don't do this if the record already exists
+      download["downloadLink"] = await this.getDownloadLinkFromSnapchat(
+        snapchatLink
+      );
+      download["status"] = Status.PENDING;
+    } catch {
+      download["downloadLink"] = "";
+      download["status"] = Status.FAILED;
+    }
+
+    return {
+      email,
+      date: new Date(memory["Date"]),
+      type: memory["Media Type"],
+      snapchatLink,
+      downloadLink: download["downloadLink"],
+      status: download["status"],
+    };
   };
 
   /**
