@@ -17,9 +17,21 @@ class Memories {
     return this.getManyWhere({ email });
   };
 
-  getPendingMemories = async (email: object) => {
+  getPendingMemories = async (email: string) => {
     return this.getManyWhere({ email, status: Status.PENDING });
   };
+
+  createMemories = async (memories: any[]) => {
+    try {
+      console.log("memories", memories)
+      return await prisma.memory.createMany({
+        data: memories,
+        skipDuplicates: true,
+      })
+    } catch (err) {
+      log.error(err);
+    }
+  }
 
   addOrUpdateMemory = async (
     email: string,
@@ -32,10 +44,9 @@ class Memories {
     // If so, add a multi-column unique constraint on [date, type],
     // and upsert new entries (aka update or create if not exists)
     try {
-      const dateTime = new Date(date);
       const entry = {
         email,
-        date: dateTime,
+        date: new Date(date),
         type,
         snapchatLink,
         downloadLink,

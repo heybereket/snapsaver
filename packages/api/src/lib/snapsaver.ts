@@ -3,9 +3,13 @@ import * as z from "zod";
 import memories from "./memories";
 import storage, { FILE_TYPE } from "./storage";
 import util from "./util";
-import { Memory, Type } from "@prisma/client";
+import { Memory, Status, Type } from "@prisma/client";
 import { URL } from "url";
 import * as log from "../lib/log";
+import pLimit from "p-limit";
+
+// Concurrency of 10 promises at once
+const limit = pLimit(10);
 
 interface ISnapSaver {
   Memories: any;
@@ -17,7 +21,7 @@ interface ISnapSaver {
   isMemoriesJsonAvailable: (email: string) => Promise<boolean>;
   isZipAvailable: (email: string) => Promise<boolean>;
   getZipDownloadLink: (email: string) => Promise<string>;
-  getMemoriesDownloadLinks: (email: string) => Promise<Array<string>>;
+  getMemoriesDownloadLinks: (email: string) => Promise<string[]>;
 }
 
 type MemoryRequest = {
@@ -37,9 +41,7 @@ class SnapSaver implements ISnapSaver {
   }
 
   /**
-   * 1. Validates the provided memories_history.json. If valid:
-   * 2. Uploads the file to S3
-   * 3. Processes file by adding an entry for each link to database
+   * Uploads a valid memories_history.json to S3 and processes each link in file.
    * @param {any} data
    * @param {string} email
    */
@@ -57,14 +59,9 @@ class SnapSaver implements ISnapSaver {
       isValid = true;
 
       // Upload valid memories_history.json to S3
-      this.Storage.uploadDataToS3(
-        buffer,
-        fileName,
-        email,
-        FILE_TYPE.REGULAR
-      );
+      this.Storage.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
 
-      this.processMemoriesJson(email, memoriesJson);
+      this.processMemoriesJsonInParallel(email, memoriesJson);
 
       return [isValid, memoriesJson];
     } catch (err) {
@@ -124,7 +121,7 @@ class SnapSaver implements ISnapSaver {
     endDate: string
   ) => {
     try {
-      const memories: Array<Memory> = await this.Memories.getPendingMemories(
+      const memories: Memory[] = await this.Memories.getPendingMemories(
         email
       );
       const filteredMemories = await this.filterMemories(
@@ -132,7 +129,7 @@ class SnapSaver implements ISnapSaver {
         new Date(startDate),
         new Date(endDate)
       );
-      const memoryRequests: Array<object> = filteredMemories.map(
+      const memoryRequests: object[] = filteredMemories.map(
         (memory: Memory): MemoryRequest => {
           return {
             id: memory.id,
@@ -207,13 +204,13 @@ class SnapSaver implements ISnapSaver {
    */
   public getMemoriesDownloadLinks = async (
     email: string
-  ): Promise<Array<string>> => {
+  ): Promise<string[]> => {
     const dir = this.Storage.getPathS3(email, FILE_TYPE.MEMORY);
     const objects = await this.Storage.getObjectsInS3Directory(dir);
 
     // Wait for all links to be resolved
     return Promise.all(
-      objects["Contents"]?.map(async (object: any): Promise<string> => {
+      objects["Contents"]?.map(async (object: any): Promise<string[]> => {
         return await this.Storage.getSignedDownloadLinkS3(object["Key"] || "");
       })
     );
@@ -245,33 +242,50 @@ class SnapSaver implements ISnapSaver {
   /**
    * Adds each link in memories_history.json to Postgres
    */
-  private processMemoriesJson = async (email: string, json: JSON) => {
-    // Extracts image URL from Snapchat's link
-    const getDownloadLinkFromSnapchat = async (url: string) => {
-      const res = await axios({
-        method: "post",
-        url,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+  private processMemoriesJsonInParallel = async (email: string, json: JSON) => {
+    const memories = json["Saved Media"] as any[];
+
+    let promises = memories.map((memory: Memory) => {
+      // Applies concurrency limit
+      return limit(async () => {
+        const snapchatLink = memory["Download Link"];
+        const download = {}
+
+        try {
+          download["downloadLink"] = await this.getDownloadLinkFromSnapchat(snapchatLink);
+        } catch {
+          download["downloadLink"] = '';
+          download["status"] = Status.FAILED
+        }
+
+        return {
+          email,
+          date: new Date(memory["Date"]),
+          type: memory["Media Type"],
+          snapchatLink,
+          downloadLink: download["downloadLink"],
+          status: download["status"]
+        };
       });
-
-      return res.data;
-    };
-
-    const memories = json["Saved Media"] as Array<any>;
-
-    memories.forEach(async (memory: any) => {
-      const snapchatLink = memory["Download Link"];
-      const downloadLink = await getDownloadLinkFromSnapchat(snapchatLink);
-      this.Memories.addOrUpdateMemory(
-        email,
-        memory["Date"],
-        memory["Media Type"],
-        snapchatLink,
-        downloadLink
-      );
     });
+
+    const processedMemories = await Promise.all(promises);
+    this.Memories.createMemories(processedMemories);
+  };
+
+  /**
+   * Extracts image URL from Snapchat's link
+   */
+  private getDownloadLinkFromSnapchat = async (url: string) => {
+    const res = await axios({
+      method: "post",
+      url,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    return res.data;
   };
 
   /**
@@ -310,7 +324,7 @@ class SnapSaver implements ISnapSaver {
    */
   private startZipMemories = async (
     email: string,
-    objects: Array<any>
+    objects: any[]
   ): Promise<void> => {
     return new Promise(async (resolve, reject) => {
       try {
