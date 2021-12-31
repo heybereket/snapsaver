@@ -93,7 +93,7 @@ class Storage implements IStorage {
         log.success(`File uploaded to S3 successfully: ${s3Data.Location}`);
 
         if (memoryId) {
-          this.Memories.updateMemoryStatuslog.success(memoryId);
+          this.Memories.updateMemoryStatusSuccess(memoryId);
         }
       });
     } catch (err) {
