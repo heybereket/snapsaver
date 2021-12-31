@@ -11,9 +11,11 @@ export default (fastify: FastifyInstance, opts, done) => {
     { preHandler: [authenticateUser] },
     async (req: any, res) => {
       const email = util.getUserEmail(req);
+      const { ready, json } = await SnapSaver.isMemoriesJsonAvailable(email);
 
       await res.send({
-        ready: await SnapSaver.isMemoriesJsonAvailable(email),
+        ready,
+        count: json["Saved Media"]?.length,
       });
     }
   );

@@ -18,7 +18,9 @@ interface ISnapSaver {
   getMemoriesJson: (email: string, local: boolean) => void;
   filterMemories: (memories: any, startDate: Date, endDate: Date) => void;
   downloadMemories: (email: string, startDate: string, endDate: string) => void;
-  isMemoriesJsonAvailable: (email: string) => Promise<boolean>;
+  isMemoriesJsonAvailable: (
+    email: string
+  ) => Promise<{ ready: boolean; json: JSON }>;
   isZipAvailable: (email: string) => Promise<boolean>;
   getZipDownloadLink: (email: string) => Promise<string>;
   getMemoriesDownloadLinks: (email: string) => Promise<string[]>;
@@ -155,13 +157,19 @@ class SnapSaver implements ISnapSaver {
   /**
    * Returns whether memories_history.json exists for user
    */
-  public isMemoriesJsonAvailable = async (email: string): Promise<boolean> => {
+  public isMemoriesJsonAvailable = async (
+    email: string
+  ): Promise<{ ready: boolean; json: JSON }> => {
     const fileKey = this.Storage.getPathS3(
       email,
       FILE_TYPE.REGULAR,
       "memories_history.json"
     );
-    return await this.Storage.objectExistsInS3(fileKey);
+
+    return {
+      ready: await this.Storage.objectExistsInS3(fileKey),
+      json: await this.Storage.getMemoriesJsonFromS3(email),
+    };
   };
 
   /**
