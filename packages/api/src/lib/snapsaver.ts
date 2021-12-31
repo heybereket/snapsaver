@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as z from "zod";
 import memories from "./memories";
-import storage, { FILE_TYPE } from "./storage";
+import storageS3, { FILE_TYPE } from "./storage-s3";
 import util from "./util";
 import { Memory, Status, Type } from "@prisma/client";
 import { URL } from "url";
@@ -15,7 +15,7 @@ const limit = pLimit(10);
 
 interface ISnapSaver {
   Memories: any;
-  Storage: any;
+  StorageS3: any;
   uploadMemoriesJson: (data: any, email: string) => Promise<[boolean, any]>;
   getMemoriesJson: (email: string, local: boolean) => void;
   filterMemories: (memories: any, startDate: Date, endDate: Date) => void;
@@ -37,11 +37,11 @@ type MemoryRequest = {
 
 class SnapSaver implements ISnapSaver {
   Memories: any;
-  Storage: any;
+  StorageS3: any;
 
   constructor() {
     this.Memories = new memories();
-    this.Storage = new storage();
+    this.StorageS3 = new storageS3();
   }
 
   /**
@@ -63,7 +63,7 @@ class SnapSaver implements ISnapSaver {
       isValid = true;
 
       // Upload valid memories_history.json to S3
-      this.Storage.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
+      this.StorageS3.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
 
       this.processMemoriesJsonInParallel(email, memoriesJson);
 
@@ -86,7 +86,7 @@ class SnapSaver implements ISnapSaver {
       return require(filePath);
     }
 
-    return await this.Storage.getMemoriesJsonFromS3(email);
+    return await this.StorageS3.getMemoriesJsonFromS3(email);
   };
 
   /**
@@ -167,15 +167,15 @@ class SnapSaver implements ISnapSaver {
   public isMemoriesJsonAvailable = async (
     email: string
   ): Promise<{ ready: boolean; json: JSON }> => {
-    const fileKey = this.Storage.getPathS3(
+    const fileKey = this.StorageS3.getPathS3(
       email,
       FILE_TYPE.REGULAR,
       "memories_history.json"
     );
 
     return {
-      ready: await this.Storage.objectExistsInS3(fileKey),
-      json: await this.Storage.getMemoriesJsonFromS3(email),
+      ready: await this.StorageS3.objectExistsInS3(fileKey),
+      json: await this.StorageS3.getMemoriesJsonFromS3(email),
     };
   };
 
@@ -183,24 +183,24 @@ class SnapSaver implements ISnapSaver {
    * Returns whether memories.zip exists for user
    */
   public isZipAvailable = async (email: string): Promise<boolean> => {
-    const fileKey = this.Storage.getPathS3(
+    const fileKey = this.StorageS3.getPathS3(
       email,
       FILE_TYPE.REGULAR,
       "memories.zip"
     );
-    return await this.Storage.objectExistsInS3(fileKey);
+    return await this.StorageS3.objectExistsInS3(fileKey);
   };
 
   /**
    * Returns link to download memories.zip directly from S3
    */
   public getZipDownloadLink = async (email: string): Promise<string> => {
-    const fileKey = this.Storage.getPathS3(
+    const fileKey = this.StorageS3.getPathS3(
       email,
       FILE_TYPE.REGULAR,
       "memories.zip"
     );
-    return await this.Storage.getSignedDownloadLinkS3(fileKey);
+    return await this.StorageS3.getSignedDownloadLinkS3(fileKey);
   };
 
   /**
@@ -208,8 +208,8 @@ class SnapSaver implements ISnapSaver {
    */
   public zipMemories = async (email: string): Promise<string> => {
     // Get list of files in users memory directory
-    const dir = this.Storage.getPathS3(email, FILE_TYPE.MEMORY);
-    const objects = await this.Storage.getObjectsInS3Directory(dir);
+    const dir = this.StorageS3.getPathS3(email, FILE_TYPE.MEMORY);
+    const objects = await this.StorageS3.getObjectsInS3Directory(dir);
 
     if (objects["Contents"]?.length == 0) return "no files found";
 
@@ -223,13 +223,13 @@ class SnapSaver implements ISnapSaver {
   public getMemoriesDownloadLinks = async (
     email: string
   ): Promise<string[]> => {
-    const dir = this.Storage.getPathS3(email, FILE_TYPE.MEMORY);
-    const objects = await this.Storage.getObjectsInS3Directory(dir);
+    const dir = this.StorageS3.getPathS3(email, FILE_TYPE.MEMORY);
+    const objects = await this.StorageS3.getObjectsInS3Directory(dir);
 
     // Wait for all links to be resolved
     return Promise.all(
       objects["Contents"]?.map(async (object: any): Promise<string[]> => {
-        return await this.Storage.getSignedDownloadLinkS3(object["Key"] || "");
+        return await this.StorageS3.getSignedDownloadLinkS3(object["Key"] || "");
       })
     );
   };
@@ -340,7 +340,7 @@ class SnapSaver implements ISnapSaver {
       }).then(async (res) => {
         try {
           const buffer = Buffer.from(res.data, "binary");
-          await this.Storage.uploadDataToS3(
+          await this.StorageS3.uploadDataToS3(
             buffer,
             fileName,
             email,
@@ -374,7 +374,7 @@ class SnapSaver implements ISnapSaver {
         );
         objects["Contents"]?.slice(0, 10).forEach(async (object: any) => {
           const fileKey = object["Key"] as string;
-          this.Storage.downloadFileFromS3(downloadDir, fileKey);
+          this.StorageS3.downloadFileFromS3(downloadDir, fileKey);
         });
 
         // Create compressed ZIP file and uplaod to S3
@@ -385,7 +385,7 @@ class SnapSaver implements ISnapSaver {
           zipPath
         );
         if (zipBuffer)
-          this.Storage.uploadDataToS3(
+          this.StorageS3.uploadDataToS3(
             zipBuffer,
             "memories.zip",
             email,

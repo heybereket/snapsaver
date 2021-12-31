@@ -7,7 +7,7 @@ import fm from 'fastify-multipart'
 import "dotenv/config";
 
 import { join } from "path";
-import { API_URL, CLIENT_URL, IS_PRODUCTION, PORT } from "./lib/constants";
+import { API_URL, CLIENT_URL, PORT } from "./lib/constants";
 import * as log from "./lib/log";
 
 const fastify = Fastify();

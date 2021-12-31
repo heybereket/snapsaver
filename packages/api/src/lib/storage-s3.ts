@@ -9,7 +9,7 @@ export enum FILE_TYPE {
   "REGULAR",
 }
 
-interface IStorage {
+interface IStorageS3 {
   getPathS3: (email: string, type: FILE_TYPE, fileName?: string) => string;
   getMemoriesJsonFromS3: (email: string) => Promise<JSON | null | undefined>;
   uploadDataToS3: (
@@ -25,7 +25,7 @@ interface IStorage {
   getObjectsInS3Directory: (dir: string) => Promise<any>; // TODO: Change any in return
 }
 
-class Storage implements IStorage {
+class StorageS3 implements IStorageS3 {
   Memories: any;
 
   constructor() {
@@ -166,4 +166,4 @@ class Storage implements IStorage {
   };
 }
 
-export default Storage;
+export default StorageS3;
