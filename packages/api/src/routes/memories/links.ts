@@ -9,7 +9,7 @@ export default (fastify: FastifyInstance, opts, done) => {
     "/links",
     { preHandler: [authenticateUser] },
     async (req, res) => {
-      const urls = await SnapSaver.getMemoriesDownloadLinks(req.email);
+      const urls = await SnapSaver.getMemoriesDownloadLinks(req.email as string);
 
       await res.send({
         urls,

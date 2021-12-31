@@ -1,5 +1,5 @@
 import axios from "axios";
-import { COOKIE_NAME } from "../constants";
+import { BetaAllowedUsers, COOKIE_NAME } from "../constants";
 import { FastifyReply, FastifyRequest } from "fastify";
 
 export const authenticateUser = async (
@@ -26,10 +26,20 @@ export const authenticateUser = async (
 
     req.email = googleUserInfo.email;
 
+    if (
+      BetaAllowedUsers.ENABLED &&
+      !BetaAllowedUsers.EMAILS.includes(req.email as string)
+    ) {
+      res.send({
+        success: false,
+        message: `You aren't allowed to use Snapsaver...yet`,
+      });
+    }
+
     return googleUserInfo;
   } catch (err) {
-    console.error(err);
-
+    req.email = undefined;
+    
     return res.status(401).send({
       success: false,
       message: "Invalid or expired session token",

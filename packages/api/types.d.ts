@@ -6,6 +6,6 @@ declare module 'fastify' {
   }
 
   interface FastifyRequest {
-    email: string;
+    email: string | undefined;
   }
 }

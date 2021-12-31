@@ -9,7 +9,7 @@ export default (fastify: FastifyInstance, opts, done) => {
     "/status",
     { preHandler: [authenticateUser] },
     async (req, res) => {
-      const { ready, json } = await SnapSaver.isMemoriesJsonAvailable(req.email);
+      const { ready, json } = await SnapSaver.isMemoriesJsonAvailable(req.email as string);
 
       await res.send({
         ready,

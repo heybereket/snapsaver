@@ -10,7 +10,7 @@ export default (fastify: FastifyInstance, opts, done) => {
     { preHandler: [authenticateUser] },
     async (req, res) => {
       const email = req.email;
-      const memories = await Memories.getAllMemories(email);
+      const memories = await Memories.getAllMemories(email as string);
 
       await res.send({
         email,
