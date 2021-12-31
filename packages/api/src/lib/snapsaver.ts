@@ -7,7 +7,8 @@ import { Memory, Status, Type } from "@prisma/client";
 import { URL } from "url";
 import * as log from "../lib/log";
 import pLimit from "p-limit";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
+import { mailer } from "./connections/ses";
 
 // Concurrency of 10 promises at once
 const limit = pLimit(10);
@@ -148,6 +149,11 @@ class SnapSaver implements ISnapSaver {
       });
 
       Promise.all(promises);
+      await mailer(
+        email as string,
+        "[Snapsaver] - Your download is ready",
+        `Hey ${email},\n\nYour files have been successfully downloaded.\n\nThanks,\nSnapsaver`
+      );
     } catch (err) {
       log.error(err);
     }
@@ -398,7 +404,7 @@ class SnapSaver implements ISnapSaver {
    * Returns file name with appropriate extension
    */
   private getMediaFileName = (date: Date, type: Type): string => {
-    const formattedDate = dayjs(date).format('YYYY/MM/DD HH-mm-ss');
+    const formattedDate = dayjs(date).format("YYYY/MM/DD HH-mm-ss");
     return `${formattedDate}${type == "PHOTO" ? ".jpg" : ".mp4"}`;
   };
 }
