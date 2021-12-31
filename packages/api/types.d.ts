@@ -7,5 +7,6 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     email: string | undefined;
+    googleAccessToken: string | undefined;
   }
 }

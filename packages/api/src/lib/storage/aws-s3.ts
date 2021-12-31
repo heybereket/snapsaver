@@ -1,9 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { S3 } from "./connections/aws";
-import { S3_BUCKET } from "./constants";
-import memories from "../lib/memories";
-import * as log from "../lib/log";
+import { S3 } from "../connections/aws";
+import { S3_BUCKET } from "../constants";
+import memories from "../../lib/memories";
+import * as log from "../../lib/log";
+
 export enum FILE_TYPE {
   "MEMORY",
   "REGULAR",

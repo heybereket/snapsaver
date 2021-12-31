@@ -1,7 +1,8 @@
 import axios from "axios";
 import * as z from "zod";
 import memories from "./memories";
-import storageS3, { FILE_TYPE } from "./storage-s3";
+import storageS3, { FILE_TYPE } from "./storage/aws-s3";
+import storageGoogleDrive from "./storage/google-drive";
 import util from "./util";
 import { Memory, Status, Type } from "@prisma/client";
 import { URL } from "url";
@@ -9,6 +10,7 @@ import * as log from "../lib/log";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { mailer } from "./connections/ses";
+import { Readable } from "stream";
 
 // Concurrency of 10 promises at once
 const limit = pLimit(10);
@@ -16,7 +18,7 @@ const limit = pLimit(10);
 interface ISnapSaver {
   Memories: any;
   StorageS3: any;
-  uploadMemoriesJson: (data: any, email: string) => Promise<[boolean, any]>;
+  uploadMemoriesJson: (data: any, email: string, storageProvider: StorageProvider, accessToken?: string) => Promise<[boolean, any]>;
   getMemoriesJson: (email: string, local: boolean) => void;
   filterMemories: (
     memories: any,
@@ -45,13 +47,20 @@ type MemoryRequest = {
   fileName: string;
 };
 
+export enum StorageProvider {
+  "S3",
+  "GOOGLE"
+}
+
 class SnapSaver implements ISnapSaver {
   Memories: any;
   StorageS3: any;
+  StorageGoogleDrive: any;
 
   constructor() {
     this.Memories = new memories();
     this.StorageS3 = new storageS3();
+    this.StorageGoogleDrive = new storageGoogleDrive();
   }
 
   /**
@@ -61,7 +70,9 @@ class SnapSaver implements ISnapSaver {
    */
   public uploadMemoriesJson = async (
     data: any,
-    email: string
+    email: string,
+    storageProvider: StorageProvider,
+    accessToken?: string
   ): Promise<[boolean, any]> => {
     let isValid = false;
     try {
@@ -72,8 +83,13 @@ class SnapSaver implements ISnapSaver {
       this.validateMemoriesJson(memoriesJson);
       isValid = true;
 
-      // Upload valid memories_history.json to S3
-      this.StorageS3.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
+      // Upload valid memories_history.json to cloud storage
+      if (storageProvider == StorageProvider.S3) {
+        this.StorageS3.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
+      } else if (storageProvider == StorageProvider.GOOGLE) {
+        const stream = Readable.from((await data.toBuffer()).toString());
+        this.StorageGoogleDrive.uploadMemoriesJson(accessToken, stream);
+      }
 
       this.processMemoriesJsonInParallel(email, memoriesJson);
 

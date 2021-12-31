@@ -25,6 +25,7 @@ export const authenticateUser = async (
       .then((res) => res.data);
 
     req.email = googleUserInfo.email;
+    req.googleAccessToken = token;
 
     if (
       BetaAllowedUsers.ENABLED &&
@@ -39,7 +40,8 @@ export const authenticateUser = async (
     return googleUserInfo;
   } catch (err) {
     req.email = undefined;
-    
+    req.googleAccessToken = undefined;
+
     return res.status(401).send({
       success: false,
       message: "Invalid or expired session token",
