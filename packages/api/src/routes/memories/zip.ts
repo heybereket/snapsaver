@@ -1,22 +1,23 @@
 import { FastifyInstance } from "fastify";
-import { getSession } from "../../lib/auth/session";
+import { authenticateUser } from "../../lib/auth/session";
 import ss from "../../lib/snapsaver";
 import util from "../../lib/util";
 
 const SnapSaver = new ss();
 
 export default (fastify: FastifyInstance, opts, done) => {
-  fastify.get("/zip", async (req: any, res) => {
-    const session = await getSession(req, res);
-    if (!session) return;
+  fastify.get(
+    "/zip",
+    { preHandler: [authenticateUser] },
+    async (req: any, res) => {
+      const email = util.getUserEmail(req);
+      const message = await SnapSaver.zipMemories(email);
 
-    const email = util.getUserEmail(req);
-    const message = await SnapSaver.zipMemories(email);
-
-    await res.send({
-      message,
-    });
-  });
+      await res.send({
+        message,
+      });
+    }
+  );
 
   done();
 };

@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getSession } from "../../lib/auth/session";
+import { authenticateUser } from "../../lib/auth/session";
 import ss from "../../lib/snapsaver";
 import util from "../../lib/util";
 
@@ -12,18 +12,19 @@ const schema = z.object({
 });
 
 export default (fastify: FastifyInstance, opts, done) => {
-  fastify.post("/download", async (req: any, res) => {
-    const session = await getSession(req, res);
-    if (!session) return;
+  fastify.post(
+    "/download",
+    { preHandler: [authenticateUser] },
+    async (req: any, res) => {
+      const email = util.getUserEmail(req);
+      const { startDate, endDate } = schema.parse(req.body);
+      SnapSaver.downloadMemories(email, startDate as string, endDate as string);
 
-    const email = util.getUserEmail(req);
-    const { startDate, endDate } = schema.parse(req.body);
-    SnapSaver.downloadMemories(email, startDate as string, endDate as string);
-
-    await res.send({
-      message: "started",
-    });
-  });
+      await res.send({
+        message: "started",
+      });
+    }
+  );
 
   done();
 };

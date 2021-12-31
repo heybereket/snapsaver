@@ -1,14 +1,18 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 
-export async function getSession(req: FastifyRequest, res: FastifyReply) {
-	const token = req.cookies["snapsaver-session"] as string | undefined;
+export const authenticateUser = async (
+  req: FastifyRequest,
+  res: FastifyReply,
+  next: any
+) => {
+  const token = req.cookies["snapsaver-session"] as string | undefined;
 
-	if (!token) {
-		res.status(401).send({
-            success: false,
-            message: "No session token found",
-        });
-	}
+  if (!token) {
+    return res.status(401).send({
+      success: false,
+      message: "No session token found",
+    });
+  }
 
-    return req.user;
-}
+  next();
+};
