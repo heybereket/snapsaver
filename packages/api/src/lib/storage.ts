@@ -77,7 +77,7 @@ class Storage implements IStorage {
     email: string,
     type: FILE_TYPE,
     memoryId?: number
-  ) => {
+  ): Promise<void> => {
     const s3FilePath = this.getPathS3(email, type, fileName);
 
     // TODO: Re-evaluate security of S3
@@ -88,14 +88,12 @@ class Storage implements IStorage {
     };
 
     try {
-      S3.upload(options, (s3Err: any, s3Data: any) => {
-        if (s3Err) throw s3Err;
-        log.success(`File uploaded to S3 successfully: ${s3Data.Location}`);
+      const s3Data = await S3.upload(options).promise();
+      log.success(`File uploaded to S3 successfully: ${s3Data.Location}`);
 
-        if (memoryId) {
-          this.Memories.updateMemoryStatusSuccess(memoryId);
-        }
-      });
+      if (memoryId) {
+        this.Memories.updateMemoryStatusSuccess(memoryId);
+      }
     } catch (err) {
       log.error(`Error uploading data to S3 by key ${s3FilePath}`, err);
     }

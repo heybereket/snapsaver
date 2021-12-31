@@ -139,7 +139,12 @@ class SnapSaver implements ISnapSaver {
       );
 
       // Wait for all downloads to be resolved
-      Promise.all(memoryRequests.map(this.requestAsync));
+      let promises = memoryRequests.map((memoryRequest: any) => {
+        // Applies concurrency limit
+        return limit(async () => this.requestAsync(memoryRequest));
+      });
+
+      Promise.all(promises);
     } catch (err) {
       log.error(err);
     }
@@ -317,10 +322,10 @@ class SnapSaver implements ISnapSaver {
         method: "get",
         url: downloadLink,
         responseType: "arraybuffer",
-      }).then((res) => {
+      }).then(async (res) => {
         try {
           const buffer = Buffer.from(res.data, "binary");
-          this.Storage.uploadDataToS3(
+          await this.Storage.uploadDataToS3(
             buffer,
             fileName,
             email,
