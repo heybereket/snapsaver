@@ -18,8 +18,18 @@ interface ISnapSaver {
   StorageS3: any;
   uploadMemoriesJson: (data: any, email: string) => Promise<[boolean, any]>;
   getMemoriesJson: (email: string, local: boolean) => void;
-  filterMemories: (memories: any, startDate: Date, endDate: Date) => void;
-  downloadMemories: (email: string, startDate: string, endDate: string) => void;
+  filterMemories: (
+    memories: any,
+    startDate: Date,
+    endDate: Date,
+    type: string
+  ) => void;
+  downloadMemories: (
+    email: string,
+    startDate: string,
+    endDate: string,
+    type: string
+  ) => void;
   isMemoriesJsonAvailable: (
     email: string
   ) => Promise<{ ready: boolean; json: JSON }>;
@@ -97,9 +107,12 @@ class SnapSaver implements ISnapSaver {
   public filterMemories = async (
     memories: Memory[],
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    type: string
   ) => {
-    if (
+    if (type) {
+      return memories.filter((memory) => memory.type === type);
+    } else if (
       String(startDate) == "Invalid Date" &&
       String(endDate) == "Invalid Date"
     ) {
@@ -122,14 +135,16 @@ class SnapSaver implements ISnapSaver {
   public downloadMemories = async (
     email: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    type: string
   ) => {
     try {
       const memories: Memory[] = await this.Memories.getPendingMemories(email);
       const filteredMemories = await this.filterMemories(
         memories,
         new Date(startDate),
-        new Date(endDate)
+        new Date(endDate),
+        type
       );
       const memoryRequests: object[] = filteredMemories.map(
         (memory: Memory): MemoryRequest => {
@@ -229,7 +244,9 @@ class SnapSaver implements ISnapSaver {
     // Wait for all links to be resolved
     return Promise.all(
       objects["Contents"]?.map(async (object: any): Promise<string[]> => {
-        return await this.StorageS3.getSignedDownloadLinkS3(object["Key"] || "");
+        return await this.StorageS3.getSignedDownloadLinkS3(
+          object["Key"] || ""
+        );
       })
     );
   };

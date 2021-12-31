@@ -8,6 +8,7 @@ const SnapSaver = new ss();
 const schema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  type: z.enum(["ALL", "PHOTO", "VIDEO"]).optional(),
 });
 
 export default (fastify: FastifyInstance, opts, done) => {
@@ -15,8 +16,8 @@ export default (fastify: FastifyInstance, opts, done) => {
     "/download",
     { preHandler: [authenticateUser] },
     async (req: any, res) => {
-      const { startDate, endDate } = schema.parse(req.body);
-      SnapSaver.downloadMemories(req.email, startDate as string, endDate as string);
+      const { startDate, endDate, type } = schema.parse(req.body);
+      SnapSaver.downloadMemories(req.email, startDate as string, endDate as string, type as string);
 
       await res.send({
         message: "started",
