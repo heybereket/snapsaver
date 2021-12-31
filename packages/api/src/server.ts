@@ -3,7 +3,6 @@ import cors from "fastify-cors";
 import autoLoad from "fastify-autoload";
 import fastifyOAuth2 from "fastify-oauth2";
 import fastifyCookie from "fastify-cookie";
-import dayjs from "dayjs";
 import fm from 'fastify-multipart'
 import "dotenv/config";
 
@@ -28,9 +27,8 @@ void fastify.register(autoLoad, {
 void fastify.register(cors, {
   credentials: true,
   origin: [
-    "https://snapsaver.me",
-    "https://snapsaver.vercel.app",
     "https://www.snapsaver.me",
+    "https://snapsaver.vercel.app",
     CLIENT_URL
   ],
   methods: ["GET", "PUT", "POST", "PATCH", "DELETE"],
@@ -38,7 +36,6 @@ void fastify.register(cors, {
 
 fastify.register(fastifyOAuth2 as any, {
   name: "googleOAuth2",
-  // gets user's full name, email and profile picture URL
   scope: ["email https://www.googleapis.com/auth/drive.file"],
   credentials: {
     client: {
@@ -47,22 +44,9 @@ fastify.register(fastifyOAuth2 as any, {
     },
     auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
   },
-  // GET route auto registered by fastify
-  startRedirectPath: "/v1/auth/google",
+  startRedirectPath: `/v1/auth/google`,
   callbackUri: `${API_URL}/auth/google/callback`,
 });
-
-fastify.get("/v1/auth/google/callback", {}, async  function (req, res) {
-  const token =  await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
-
-  res.setCookie('snapsaver-token', token.access_token , {
-    httpOnly: true,
-    secure: IS_PRODUCTION,
-    path: '/',
-    sameSite: 'strict',
-    expires: dayjs().add(7, 'days').toDate(),
-  }).redirect(CLIENT_URL);
-})
 
 // Default Routes
 fastify.get("/", async (req, res) => {

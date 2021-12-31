@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import { authenticateUser } from "../../lib/auth/session";
 import { MEGABYTE } from "../../lib/constants";
 import ss from "../../lib/snapsaver";
-import util from "../../lib/util";
 
 const SnapSaver = new ss();
 
@@ -13,7 +12,7 @@ export default (fastify: FastifyInstance, opts, done) => {
     async (req: any, res) => {
       const options = { limits: { fileSize: 8 * MEGABYTE } };
       const data = await req.file(options);
-      const email = util.getUserEmail(req);
+      const email = req.email;
       const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email);
       const numMemories = isValid ? result["Saved Media"]?.length : 0;
 

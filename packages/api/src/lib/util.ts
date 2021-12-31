@@ -6,15 +6,6 @@ import { IS_PRODUCTION } from "./constants";
 import * as log from "../lib/log";
 
 const util = {
-  // Only used if email not provided in request. TODO: Use only in development
-  getDevUserEmail: () =>
-    IS_PRODUCTION
-      ? "asemagn@gmail.com"
-      : (process.env.DEV_USER_EMAIL as string),
-
-  getUserEmail: (req: any) =>
-    req?.user?.emails?.values()?.next()?.value.value ?? util.getDevUserEmail(),
-
   getAbsolutePathLocal: (dir: string, fileName: string): string => {
     const relativePath = path.join("./", dir, fileName);
     return path.resolve(relativePath);
