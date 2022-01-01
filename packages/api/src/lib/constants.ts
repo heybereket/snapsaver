@@ -15,6 +15,7 @@ export const S3_BUCKET = process.env.AWS_BUCKET_NAME as string;
 export const BetaAllowedUsers = {
 	ENABLED: true,
 	EMAILS: [
+    'a.ksemagn@gmail.com',
 		'asemagn@gmail.com',
 		'imbereket@gmail.com',
 		'semagnbereket@gmail.com',

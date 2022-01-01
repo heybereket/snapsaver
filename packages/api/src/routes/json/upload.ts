@@ -14,7 +14,7 @@ export default (fastify: FastifyInstance, opts, done) => {
       const options = { limits: { fileSize: 8 * MEGABYTE } };
       const data = await req.file(options);
 
-      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email, StorageProvider.GOOGLE, googleAccessToken);
+      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email as string, StorageProvider.GOOGLE, googleAccessToken);
       const numMemories = isValid ? result["Saved Media"]?.length : 0;
 
       await res.send({ isValid, numMemories, email, result });
@@ -28,7 +28,7 @@ export default (fastify: FastifyInstance, opts, done) => {
       const options = { limits: { fileSize: 8 * MEGABYTE } };
       const data = await req.file(options);
       const { email } = req;
-      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email, StorageProvider.S3);
+      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email as string, StorageProvider.S3);
       const numMemories = isValid ? result["Saved Media"]?.length : 0;
 
       await res.send({ isValid, numMemories, email, result });
