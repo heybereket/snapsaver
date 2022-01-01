@@ -1,4 +1,4 @@
-import { Memory, Status, Type } from "@prisma/client";
+import { Memory, Status, Type, User } from "@prisma/client";
 import { prisma } from "./connections/prisma";
 import * as log from "../lib/log";
 
@@ -105,7 +105,10 @@ class Memories implements Memories {
     }
   };
 
-  createOrUpdateUser = async (email: string, numMemories: number): Promise<void> => {
+  createOrUpdateUser = async (
+    email: string,
+    numMemories: number
+  ): Promise<void> => {
     try {
       const entry = {
         email,
@@ -116,6 +119,18 @@ class Memories implements Memories {
         where: { email },
         update: entry,
         create: entry,
+      });
+    } catch (err) {
+      log.error(err);
+    }
+  };
+
+  getUser = async (email: string): Promise<User | undefined | null> => {
+    try {
+      return await prisma.user.findUnique({
+        where: {
+          email
+        },
       });
     } catch (err) {
       log.error(err);

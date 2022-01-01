@@ -8,14 +8,13 @@ export default (fastify: FastifyInstance, opts, done) => {
     "/status",
     { preHandler: [authenticateUser] },
     async (req, res) => {
-      const { ready, json, success, pending, failed } = await SnapSaver.isMemoriesJsonAvailable(req.email as string);
+      const { success, pending, failed, expectedTotal } = await SnapSaver.isMemoriesJsonAvailable(req.email as string);
 
       await res.send({
-        ready,
-        count: json["Saved Media"]?.length,
         success,
         pending,
-        failed
+        failed,
+        expectedTotal
       });
     }
   );

@@ -41,11 +41,10 @@ interface ISnapSaver {
   isMemoriesJsonAvailable: (
     email: string
   ) => Promise<{
-    ready: boolean;
     pending: number;
     success: number;
     failed: number;
-    json: JSON;
+    expectedTotal: number | null;
   }>;
   isZipAvailable: (email: string) => Promise<boolean>;
   getZipDownloadLink: (email: string) => Promise<string>;
@@ -217,24 +216,25 @@ class SnapSaver implements ISnapSaver {
   public isMemoriesJsonAvailable = async (
     email: string
   ): Promise<{
-    ready: boolean;
-    json: JSON;
     pending: number;
     success: number;
     failed: number;
+    expectedTotal: number | null;
   }> => {
     const fileKey = this.StorageS3.getPathS3(
       email,
       FILE_TYPE.REGULAR,
       "memories_history.json"
     );
+    const user = await this.Memories.getUser(email);
+    const memories = await this.Memories.getAllMemories(email);
 
     return {
-      ready: await this.StorageS3.objectExistsInS3(fileKey),
-      pending: JSON.stringify(await this.Memories.getMemories(email, Status.PENDING)).length,
-      success: JSON.stringify(await this.Memories.getMemories(email, Status.SUCCESS)).length,
-      failed: JSON.stringify(await this.Memories.getMemories(email, Status.FAILED)).length,
-      json: await this.StorageS3.getMemoriesJsonFromS3(email),
+      // ready: await this.StorageS3.objectExistsInS3(fileKey),
+      pending: memories.filter((memory: Memory) => memory.status == Status.PENDING).length,
+      success: memories.filter((memory: Memory) => memory.status == Status.SUCCESS).length,
+      failed: memories.filter((memory: Memory) => memory.status == Status.FAILED).length,
+      expectedTotal: user ? user.numMemories : null
     };
   };
 
@@ -327,7 +327,7 @@ class SnapSaver implements ISnapSaver {
     // Delete existing records for this user to start from new
     await this.Memories.deleteManyByEmail(email);
 
-    let promises = memories.slice(0, 10).map((memory: any) => {
+    let promises = memories.map((memory: any) => {
       // Applies concurrency limit
       return limit(async () => this.getMemoryObjectToSave(email, memory));
     });
