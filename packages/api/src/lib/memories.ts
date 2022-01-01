@@ -9,7 +9,13 @@ interface Memories {
   getSuccessfulMemories: (email: string) => Promise<Memory[] | undefined>;
   updateMemoryStatusSuccess: (id: number) => Promise<void>;
   createMemories: (memories: any[]) => Promise<void>;
-  addOrUpdateMemory: (email: string, date: string, type: Type, snapchatLink: string, downloadLink: string) => Promise<void>;
+  addOrUpdateMemory: (
+    email: string,
+    date: string,
+    type: Type,
+    snapchatLink: string,
+    downloadLink: string
+  ) => Promise<void>;
   deleteManyByEmail: (email: string) => Promise<void>;
 }
 
@@ -28,7 +34,10 @@ class Memories implements Memories {
     return await this.getManyWhere({ email });
   };
 
-  getMemories = async (email: string, status: Status): Promise<Memory[] |  undefined> => {
+  getMemories = async (
+    email: string,
+    status: Status
+  ): Promise<Memory[] | undefined> => {
     return this.getManyWhere({ email, status });
   };
 
@@ -37,15 +46,15 @@ class Memories implements Memories {
       const res = await prisma.memory.deleteMany({
         where: {
           email: {
-            contains: email
+            contains: email,
           },
         },
       });
-      log.info(`Deleted ${res.count} memories for ${email}`)
+      log.info(`Deleted ${res.count} memories for ${email}`);
     } catch (err) {
       log.error(err);
     }
-  }
+  };
 
   createMemories = async (memories: any[]): Promise<void> => {
     try {
@@ -90,6 +99,37 @@ class Memories implements Memories {
       await prisma.memory.update({
         where: { id },
         data: { status: Status.SUCCESS },
+      });
+    } catch (err) {
+      log.error(err);
+    }
+  };
+
+  createOrUpdateUser = async (email: string, numMemories: number): Promise<void> => {
+    try {
+      const entry = {
+        email,
+        numMemories,
+      };
+
+      await prisma.user.upsert({
+        where: { email },
+        update: entry,
+        create: entry,
+      });
+    } catch (err) {
+      log.error(err);
+    }
+  };
+
+  updateUserNumMemories = async (
+    email: string,
+    numMemories: number
+  ): Promise<void> => {
+    try {
+      await prisma.user.update({
+        where: { email },
+        data: { numMemories },
       });
     } catch (err) {
       log.error(err);
