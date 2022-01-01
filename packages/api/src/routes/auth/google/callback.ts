@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { FastifyInstance } from "fastify";
-import { BetaAllowedUsers, CLIENT_URL, IS_PRODUCTION } from "../../../lib/constants";
+import { CLIENT_URL, IS_PRODUCTION } from "../../../lib/constants";
 
 export default (fastify: FastifyInstance, opts, done) => {
   fastify.get("/callback", async (req, res) => {
