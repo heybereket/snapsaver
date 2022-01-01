@@ -27,8 +27,8 @@ class Memories implements Memories {
     return await this.getManyWhere({ email });
   };
 
-  getPendingMemories = async (email: string): Promise<Memory[] |  undefined> => {
-    return this.getManyWhere({ email, status: Status.PENDING });
+  getMemories = async (email: string, status: Status): Promise<Memory[] |  undefined> => {
+    return this.getManyWhere({ email, status });
   };
 
   createMemories = async (memories: any[]): Promise<void> => {

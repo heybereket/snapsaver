@@ -19,7 +19,12 @@ const limit = pLimit(10);
 interface ISnapSaver {
   Memories: any;
   StorageS3: any;
-  uploadMemoriesJson: (data: any, email: string, storageProvider: StorageProvider, accessToken?: string) => Promise<[boolean, any]>;
+  uploadMemoriesJson: (
+    data: any,
+    email: string,
+    storageProvider: StorageProvider,
+    accessToken?: string
+  ) => Promise<[boolean, any]>;
   getMemoriesJson: (email: string, local: boolean) => void;
   filterMemories: (
     memories: any,
@@ -35,7 +40,13 @@ interface ISnapSaver {
   ) => void;
   isMemoriesJsonAvailable: (
     email: string
-  ) => Promise<{ ready: boolean; json: JSON }>;
+  ) => Promise<{
+    ready: boolean;
+    pending: number;
+    success: number;
+    failed: number;
+    json: JSON;
+  }>;
   isZipAvailable: (email: string) => Promise<boolean>;
   getZipDownloadLink: (email: string) => Promise<string>;
   getMemoriesDownloadLinks: (email: string) => Promise<string[]>;
@@ -50,7 +61,7 @@ type MemoryRequest = {
 
 export enum StorageProvider {
   "S3",
-  "GOOGLE"
+  "GOOGLE",
 }
 
 class SnapSaver implements ISnapSaver {
@@ -86,7 +97,12 @@ class SnapSaver implements ISnapSaver {
 
       // Upload valid memories_history.json to cloud storage
       if (storageProvider == StorageProvider.S3) {
-        this.StorageS3.uploadDataToS3(buffer, fileName, email, FILE_TYPE.REGULAR);
+        this.StorageS3.uploadDataToS3(
+          buffer,
+          fileName,
+          email,
+          FILE_TYPE.REGULAR
+        );
       } else if (storageProvider == StorageProvider.GOOGLE) {
         const stream = Readable.from((await data.toBuffer()).toString());
         this.StorageGoogleDrive.uploadMemoriesJson(accessToken, stream);
@@ -200,7 +216,13 @@ class SnapSaver implements ISnapSaver {
    */
   public isMemoriesJsonAvailable = async (
     email: string
-  ): Promise<{ ready: boolean; json: JSON }> => {
+  ): Promise<{
+    ready: boolean;
+    json: JSON;
+    pending: number;
+    success: number;
+    failed: number;
+  }> => {
     const fileKey = this.StorageS3.getPathS3(
       email,
       FILE_TYPE.REGULAR,
@@ -209,6 +231,9 @@ class SnapSaver implements ISnapSaver {
 
     return {
       ready: await this.StorageS3.objectExistsInS3(fileKey),
+      pending: JSON.stringify(await this.Memories.getMemories(email, Status.PENDING)).length,
+      success: JSON.stringify(await this.Memories.getMemories(email, Status.SUCCESS)).length,
+      failed: JSON.stringify(await this.Memories.getMemories(email, Status.FAILED)).length,
       json: await this.StorageS3.getMemoriesJsonFromS3(email),
     };
   };
