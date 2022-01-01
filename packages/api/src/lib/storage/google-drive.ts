@@ -2,8 +2,15 @@ import { google } from "googleapis";
 import * as log from "../log";
 import { API_URL } from "../constants";
 import { resolve } from "path/posix";
+import memories from "../memories";
 
 class StorageGoogleDrive {
+  Memories: any;
+
+  constructor() {
+    this.Memories = new memories();
+  }
+
   public uploadMemoriesJson = async (accessToken: string, data: any) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
@@ -29,7 +36,8 @@ class StorageGoogleDrive {
     accessToken: string,
     folderId: string,
     fileName: string,
-    stream: any
+    stream: any,
+    memoryId?: number
   ) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
@@ -40,7 +48,8 @@ class StorageGoogleDrive {
         folderId,
         fileName,
         stream,
-        mimeType
+        mimeType,
+        memoryId
       );
     } catch (err) {
       log.error(err);
@@ -118,7 +127,8 @@ class StorageGoogleDrive {
     folderId,
     name,
     data,
-    mimeType: "application/json" | "image/jpeg" | "video/mp4"
+    mimeType: "application/json" | "image/jpeg" | "video/mp4",
+    memoryId?: number
   ) => {
     const fileMetadata = {
       name,
@@ -137,7 +147,7 @@ class StorageGoogleDrive {
           media: media,
           fields: "id",
         },
-        (err, file) => {
+        async (err, file) => {
           if (err) {
             log.error(
               `Error creating file ${name} to GDrive: `,
@@ -146,7 +156,11 @@ class StorageGoogleDrive {
             reject(err);
           } else {
             log.success("Created file, id: ", file.data.id);
-            resolve(file.data.id);
+            // TODO: Test if this part is working, seems not in sync with file actually saving to GDrive
+            if (memoryId) {
+              await this.Memories.updateMemoryStatusSuccess(memoryId);
+              resolve(file.data.id);
+            }
           }
         }
       );

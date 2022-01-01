@@ -172,7 +172,7 @@ class SnapSaver implements ISnapSaver {
     googleDriveAccessToken?: string
   ) => {
     try {
-      const memories: Memory[] = await this.Memories.getPendingMemories(email);
+      const memories: Memory[] = await this.Memories.getMemories(email, Status.PENDING);
       const filteredMemories = await this.filterMemories(
         memories,
         new Date(startDate),
@@ -406,7 +406,7 @@ class SnapSaver implements ISnapSaver {
         try {
           if (googleDriveAccessToken) {
             // Upload to GDrive
-            await this.StorageGoogleDrive.uploadMediaFile(googleDriveAccessToken, googleFolderId, fileName, res.data);
+            await this.StorageGoogleDrive.uploadMediaFile(googleDriveAccessToken, googleFolderId, fileName, res.data, memoryRequest.id);
           } else {
             // Upload to S3
             const buffer = Buffer.from(res.data, "binary");
