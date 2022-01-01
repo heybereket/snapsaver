@@ -324,7 +324,10 @@ class SnapSaver implements ISnapSaver {
   private processMemoriesJsonInParallel = async (email: string, json: JSON) => {
     const memories = json["Saved Media"] as any[];
 
-    let promises = memories.map((memory: any) => {
+    // Delete existing records for this user to start from new
+    await this.Memories.deleteManyByEmail(email);
+
+    let promises = memories.slice(0, 10).map((memory: any) => {
       // Applies concurrency limit
       return limit(async () => this.getMemoryObjectToSave(email, memory));
     });

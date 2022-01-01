@@ -10,6 +10,7 @@ interface Memories {
   updateMemoryStatusSuccess: (id: number) => Promise<void>;
   createMemories: (memories: any[]) => Promise<void>;
   addOrUpdateMemory: (email: string, date: string, type: Type, snapchatLink: string, downloadLink: string) => Promise<void>;
+  deleteManyByEmail: (email: string) => Promise<void>;
 }
 
 class Memories implements Memories {
@@ -30,6 +31,21 @@ class Memories implements Memories {
   getMemories = async (email: string, status: Status): Promise<Memory[] |  undefined> => {
     return this.getManyWhere({ email, status });
   };
+
+  deleteManyByEmail = async (email: string): Promise<void> => {
+    try {
+      const res = await prisma.memory.deleteMany({
+        where: {
+          email: {
+            contains: email
+          },
+        },
+      });
+      log.info(`Deleted ${res.count} memories for ${email}`)
+    } catch (err) {
+      log.error(err);
+    }
+  }
 
   createMemories = async (memories: any[]): Promise<void> => {
     try {
