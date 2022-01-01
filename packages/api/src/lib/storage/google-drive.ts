@@ -37,7 +37,7 @@ class StorageGoogleDrive {
     folderId: string,
     fileName: string,
     stream: any,
-    memoryId: number
+    memoryId?: number
   ) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
@@ -128,7 +128,7 @@ class StorageGoogleDrive {
     name,
     data,
     mimeType: "application/json" | "image/jpeg" | "video/mp4",
-    memoryId: number
+    memoryId?: number
   ) => {
     const fileMetadata = {
       name,
@@ -157,8 +157,10 @@ class StorageGoogleDrive {
           } else {
             log.success("Created file, id: ", file.data.id);
             // TODO: Test if this part is working, seems not in sync with file actually saving to GDrive
-            await this.Memories.updateMemoryStatusSuccess(memoryId);
-            resolve(file.data.id);
+            if (memoryId) {
+              await this.Memories.updateMemoryStatusSuccess(memoryId);
+              resolve(file.data.id);
+            }
           }
         }
       );

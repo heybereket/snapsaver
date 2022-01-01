@@ -136,20 +136,6 @@ class Memories implements Memories {
       log.error(err);
     }
   };
-
-  updateUserNumMemories = async (
-    email: string,
-    numMemories: number
-  ): Promise<void> => {
-    try {
-      await prisma.user.update({
-        where: { email },
-        data: { numMemories },
-      });
-    } catch (err) {
-      log.error(err);
-    }
-  };
 }
 
 export default Memories;
