@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import * as log from "../log";
 import { API_URL } from "../constants";
+import { resolve } from "path/posix";
 
 class StorageGoogleDrive {
   public uploadMemoriesJson = async (accessToken: string, data: any) => {
@@ -9,21 +10,59 @@ class StorageGoogleDrive {
       const folderId = await this.getOrCreateSnapsaverFolderId(drive);
       log.info("Target GDrive folder id: ", folderId);
 
-      this.createFileInFolder(drive, folderId, "memories_history.json", data, "application/json");
+      this.createFileInFolder(
+        drive,
+        folderId,
+        "memories_history.json",
+        data,
+        "application/json"
+      );
     } catch (err) {
-      log.error(`Error uploading memories JSON to GDrive`, err.errors.first().message);
+      log.error(
+        `Error uploading memories JSON to GDrive`,
+        err.errors.first().message
+      );
     }
   };
 
-  private getOrCreateSnapsaverFolderId = async (drive) => {
+  public uploadMediaFile = async (
+    accessToken: string,
+    folderId: string,
+    fileName: string,
+    stream: any
+  ) => {
+    try {
+      const drive = this.getGoogleDrive(accessToken);
+      const fileExtension = fileName.split(".").pop();
+      const mimeType = fileExtension == "mp4" ? "video/mp4" : "image/jpeg";
+      await this.createFileInFolder(
+        drive,
+        folderId,
+        fileName,
+        stream,
+        mimeType
+      );
+    } catch (err) {
+      log.error(err);
+    }
+  };
+
+  public getTargetFolderId = async (accessToken) => {
+      const drive = this.getGoogleDrive(accessToken);
+      const folderId = await this.getOrCreateSnapsaverFolderId(drive);
+      return folderId;
+  }
+
+  private getOrCreateSnapsaverFolderId = async (drive: any) => {
     const folderName = "Snapsaver";
-    const existingFolders: any[] = (await this.listFiles(drive)) || [{}];
+    const existingFolders: any[] =await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(
       (f) => f.name === folderName
     );
-    const folderId = snapsaverFolders.length
-      ? snapsaverFolders[0].id
-      : this.createFolder(drive, folderName);
+    const folderId =
+      snapsaverFolders.length > 0
+        ? snapsaverFolders[0].id
+        : await this.createFolder(drive, folderName);
     return folderId;
   };
 
@@ -74,9 +113,15 @@ class StorageGoogleDrive {
     });
   };
 
-  private createFileInFolder = (drive, folderId, name, data, mimeType: "application/json" | "image/jpeg") => {
+  private createFileInFolder = (
+    drive,
+    folderId,
+    name,
+    data,
+    mimeType: "application/json" | "image/jpeg" | "video/mp4"
+  ) => {
     const fileMetadata = {
-      name: "memories_history.json",
+      name,
       parents: [folderId],
     };
 
@@ -85,20 +130,27 @@ class StorageGoogleDrive {
       body: data,
     };
 
-    drive.files.create(
-      {
-        resource: fileMetadata,
-        media: media,
-        fields: "id",
-      },
-      (err, file) => {
-        if (err) {
-          log.error(`Error creating file ${name} to GDrive: `, err.errors[0].message);
-        } else {
-          log.success("Created file, id: ", file.data.id);
+    return new Promise((resolve, reject) => {
+      drive.files.create(
+        {
+          resource: fileMetadata,
+          media: media,
+          fields: "id",
+        },
+        (err, file) => {
+          if (err) {
+            log.error(
+              `Error creating file ${name} to GDrive: `,
+              err.errors[0].message
+            );
+            reject(err);
+          } else {
+            log.success("Created file, id: ", file.data.id);
+            resolve(file.data.id);
+          }
         }
-      }
-    );
+      );
+    });
   };
 
   private getGoogleDrive = (accessToken: string) => {

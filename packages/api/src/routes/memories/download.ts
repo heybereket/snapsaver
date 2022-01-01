@@ -17,7 +17,8 @@ export default (fastify: FastifyInstance, opts, done) => {
     { preHandler: [authenticateUser] },
     async (req: any, res) => {
       const { startDate, endDate, type } = schema.parse(req.body);
-      SnapSaver.downloadMemories(req.email, startDate as string, endDate as string, type as string);
+      const { email, googleAccessToken } = req;
+      SnapSaver.downloadMemories(email, startDate as string, endDate as string, type as string, googleAccessToken);
 
       await res.send({
         message: "started",

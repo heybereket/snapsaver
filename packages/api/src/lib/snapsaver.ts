@@ -11,6 +11,7 @@ import pLimit from "p-limit";
 import dayjs from "dayjs";
 import { mailer } from "./connections/ses";
 import { Readable } from "stream";
+import { google } from "googleapis";
 
 // Concurrency of 10 promises at once
 const limit = pLimit(10);
@@ -152,7 +153,8 @@ class SnapSaver implements ISnapSaver {
     email: string,
     startDate: string,
     endDate: string,
-    type: string
+    type: string,
+    googleDriveAccessToken?: string
   ) => {
     try {
       const memories: Memory[] = await this.Memories.getPendingMemories(email);
@@ -173,10 +175,11 @@ class SnapSaver implements ISnapSaver {
         }
       );
 
+      const googleFolderId = await this.StorageGoogleDrive.getTargetFolderId(googleDriveAccessToken);
       // Wait for all downloads to be resolved
       let promises = memoryRequests.map((memoryRequest: any) => {
         // Applies concurrency limit
-        return limit(async () => this.requestAsync(memoryRequest));
+        return limit(async () => this.requestAsync(memoryRequest, googleFolderId, googleDriveAccessToken));
       });
 
       Promise.all(promises);
@@ -363,23 +366,31 @@ class SnapSaver implements ISnapSaver {
   /**
    * Asynchronously download the actual image/video file for this memory and save it to S3
    */
-  private requestAsync = (memoryRequest: MemoryRequest) => {
+  private requestAsync = (memoryRequest: MemoryRequest, googleFolderId?: string, googleDriveAccessToken?: string) => {
     return new Promise((resolve, reject) => {
       const { id, email, downloadLink, fileName } = memoryRequest;
       axios({
         method: "get",
         url: downloadLink,
-        responseType: "arraybuffer",
+        responseType: "stream"
+        // responseType: "arraybuffer", // TODO: Currently S3 expects arraybuffer, GDrive expects steam lol
       }).then(async (res) => {
         try {
-          const buffer = Buffer.from(res.data, "binary");
-          await this.StorageS3.uploadDataToS3(
-            buffer,
-            fileName,
-            email,
-            FILE_TYPE.MEMORY,
-            id
-          );
+          if (googleDriveAccessToken) {
+            // Upload to GDrive
+            await this.StorageGoogleDrive.uploadMediaFile(googleDriveAccessToken, googleFolderId, fileName, res.data);
+          } else {
+            // Upload to S3
+            const buffer = Buffer.from(res.data, "binary");
+            await this.StorageS3.uploadDataToS3(
+              buffer,
+              fileName,
+              email,
+              FILE_TYPE.MEMORY,
+              id
+            );
+          }
+
           log.success(`Successfully downloaded ${fileName}`);
           resolve("done");
         } catch (err) {
