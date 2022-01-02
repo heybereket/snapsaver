@@ -29,6 +29,7 @@ void fastify.register(cors, {
   origin: [
     "https://www.snapsaver.me",
     "https://snapsaver.vercel.app",
+    "https://staging.snapsaver.me",
     CLIENT_URL
   ],
   methods: ["GET", "PUT", "POST", "PATCH", "DELETE"],
