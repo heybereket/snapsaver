@@ -28,22 +28,6 @@ export const authenticateUser = async (
     req.email = googleUserInfo.email;
     req.googleAccessToken = token;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        email: req.email,
-      },
-    });
-
-    if (!user?.betaUser) {
-      res.send({
-        success: false,
-        message: `You aren't a beta user...yet.`,
-        user
-      });
-      
-      res.redirect(CLIENT_URL);
-    }
-
     return googleUserInfo;
   } catch (err) {
     req.email = undefined;
