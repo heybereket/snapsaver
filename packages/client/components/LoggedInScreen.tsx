@@ -29,8 +29,20 @@ const Title = (props: any) => {
   );
 };
 
+type MemoriesStatus = {
+  expectedTotal: number | null;
+  pending: number;
+  success: number;
+  failed: number;
+};
+
 export const LoggedInScreen = () => {
-  const [memoriesStatus, setMemoriesStatus] = useState({});
+  const [memoriesStatus, setMemoriesStatus] = useState<MemoriesStatus>({
+    expectedTotal: 0,
+    pending: 0,
+    success: 0,
+    failed: 0,
+  });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processingDone, setProcessingDone] = useState(false);
 
@@ -52,6 +64,8 @@ export const LoggedInScreen = () => {
       .catch((error) => {
         console.log(error.message);
       });
+
+    checkMemoryStatus();
   };
 
   const DownloadHandler = async () => {
@@ -73,7 +87,11 @@ export const LoggedInScreen = () => {
       .get(`${API_URL}/json/status`, {
         withCredentials: true,
       })
-      .then((res) => setMemoriesStatus(res.data))
+      .then((res) => {
+        const { pending, failed, success, expectedTotal } = res.data;
+        setMemoriesStatus(res.data);
+        setProcessingDone(pending + failed == expectedTotal);
+      })
       .catch((error) => {
         console.log(error.message);
       });
@@ -90,6 +108,10 @@ export const LoggedInScreen = () => {
   return (
     <>
       <div>
+        <div className="flex items-center justify-center mb-3 text-xl">
+          <span className="text-center">Upload your <Codeblock content="memories_history.json" /></span>
+        </div>
+
         <div className={`rounded-lg mb-2 flex items-center justify-center`}>
           <input
             className="hidden w-[410px] px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
@@ -99,26 +121,61 @@ export const LoggedInScreen = () => {
           />
           <label
             htmlFor="file-input"
-            className="w-[410px] text-center px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
+            className="w-[410px] text-xl mb-2 text-center px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
           >
-            {uploadedFile ? uploadedFile.name : "Upload memories_history.json"}
+            {uploadedFile ? uploadedFile.name : "Upload"}
           </label>
         </div>
-        <div className={`rounded-lg mb-2 flex items-center justify-center`}>
+        <div
+          className={`rounded-lg text-xl mb-2 flex items-center justify-center`}
+        >
           <button
-            className="w-[200px] px-5 py-3 mr-2 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
+            className="w-[200px] px-5 py-3 mr-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
             onClick={ProcessJSONHandler}
           >
-            Process memories
+            Process file
           </button>
 
           <button
-            className={`w-[200px] px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${processingDone ? "hover:bg-primary hover:text-black" : "cursor-not-allowed opacity-50"}`}
+            className={`w-[200px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${
+              processingDone
+                ? "hover:bg-primary hover:text-black"
+                : "cursor-not-allowed opacity-50"
+            }`}
             onClick={DownloadHandler}
           >
             Save to Drive
           </button>
         </div>
+        {processingDone ? (
+          <div className="flex items-center justify-center mt-8 mb-10">
+            <div className="text-xl text-center text-gray-400">
+              You have{" "}
+              <span className="text-green-500 font-bold">
+                {memoriesStatus.pending}
+              </span>{" "}
+              memories ready to download 🤩{" "}
+              {memoriesStatus.failed > 0 && (
+                <>
+                  but
+                  <br />{" "}
+                  <span className="text-red-500 font-bold">
+                    {memoriesStatus.failed}
+                  </span>{" "}
+                  links aren&apos;t working for some reason.
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div>
+            Processing memories...{" "}
+            {Object.keys(memoriesStatus).length !== 0 &&
+              `${memoriesStatus.pending + memoriesStatus.failed}/${
+                memoriesStatus.expectedTotal
+              }... refresh to see progress.`}
+          </div>
+        )}
       </div>
       <VideoEmbed />
     </>
