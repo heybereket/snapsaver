@@ -7,7 +7,7 @@ export default (fastify: FastifyInstance, opts, done) => {
 
     res.send({
       success: true,
-      data: user,
+      user,
     });
   });
 

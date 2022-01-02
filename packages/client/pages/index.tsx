@@ -20,18 +20,20 @@ export const Container = (props: any) => {
 };
 
 const Home: NextPage = () => {
-  const { user, isLoading, isError } = useUser();
+  const { data, isLoading, isError } = useUser();
 
-  if (isLoading || isError) return (<>
-  <Container className={`md:mt-20`}>
-  </Container>
-</>)
+  if (isLoading || isError)
+    return (
+      <>
+        <Container className={`md:mt-20`}></Container>
+      </>
+    );
 
-  if (user) {
+  if (data.user && data.success) {
     return (
       <>
         <Container className={`md:mt-20`}>
-          <Header user={user}/>
+          <Header data={data} />
           <LoggedInScreen />
           <Footer />
         </Container>
@@ -41,7 +43,7 @@ const Home: NextPage = () => {
     return (
       <>
         <Container className={`md:mt-20`}>
-          <Header user={user}/>
+          <Header data={data} />
           <LandingContent />
           <Footer />
         </Container>

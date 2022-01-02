@@ -2,16 +2,16 @@ import { API_URL } from "../lib/constants";
 import { Google } from "./icons/Google";
 import Image from "next/image";
 
-export const Header = (props: {user: any}) => {
+export const Header = (props: {data: any}) => {
   return (
     <>
       <div className="absolute right-4 md:right-10 top-10 h-16 pb-5">
         <a
-          href={props.user ? `${API_URL}/auth/google/logout`: `${API_URL}/auth/google`}
+          href={props.data.user ? `${API_URL}/auth/google/logout`: `${API_URL}/auth/google`}
         >
           <button className="group bg-red-500 px-5 py-3 flex items-center text-sm w-auto rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black text-center text-secondary">
             <Google className="fill-secondary mr-2 group-hover:fill-black" />
-            {props.user ? <span>Sign out</span> : <span>Sign in/up -&gt;</span>}
+            {props.data.user ? <span>Sign out</span> : <span>Sign in/up -&gt;</span>}
           </button>
         </a>
       </div>
@@ -36,6 +36,12 @@ export const Header = (props: {user: any}) => {
             Backup your Snapchat memories
           </span>
         </div>
+      </div>
+
+      <div className="flex items-center justify-center">
+        {props.data.message && props.data.message.includes("beta") && (
+          <span>{props.data.message}</span>
+        )}
       </div>
     </>
   );
