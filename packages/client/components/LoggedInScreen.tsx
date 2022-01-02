@@ -169,16 +169,16 @@ export const LoggedInScreen = () => {
               )}
             </div>
           </div>
+        ) : memoriesStatus.expectedTotal && memoriesStatus.expectedTotal > 0 ? (
+          <div className="flex items-center justify-center mt-8 mb-10 text-secondary text-xl">
+            Processing memories...{" "}
+            {Object.keys(memoriesStatus).length !== 0 &&
+              `${memoriesStatus.pending + memoriesStatus.failed}/${
+                memoriesStatus.expectedTotal
+              }... refresh to see progress.`}
+          </div>
         ) : (
-          memoriesStatus.expectedTotal && memoriesStatus.expectedTotal > 0 && (
-            <div className="flex items-center justify-center mt-8 mb-10 text-secondary text-xl">
-              Processing memories...{" "}
-              {Object.keys(memoriesStatus).length !== 0 &&
-                `${memoriesStatus.pending + memoriesStatus.failed}/${
-                  memoriesStatus.expectedTotal
-                }... refresh to see progress.`}
-            </div>
-          )
+          <div></div>
         )}
       </div>
 
