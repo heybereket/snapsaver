@@ -1,8 +1,8 @@
 import { API_URL } from "../lib/constants";
 import { useUser } from "../hooks/useUser";
+import { Google } from "./icons/Google";
 import type { NextPage } from "next";
 import Image from "next/image";
-
 export const Header: NextPage = () => {
   const { user } = useUser();
 
@@ -10,14 +10,15 @@ export const Header: NextPage = () => {
     <>
       <div className="absolute right-10 top-10 h-16 pb-5">
         <a
-          href={user ? `${API_URL}/auth/google/logout` : `${API_URL}/auth/google`}
-          className="text-center px-5 py-3 text-secondary bg-red-500 rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black"
+          href={user ? `${API_URL}/auth/google/logout`: `${API_URL}/auth/google`}
         >
-          <button>
+          <button className="group bg-red-500 px-5 py-3 flex items-center text-sm w-auto rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black text-center text-secondary">
+            <Google className="fill-secondary mr-2 group-hover:fill-black" />
             {user ? <span>Sign out</span> : <span>Sign in/up -&gt;</span>}
           </button>
         </a>
       </div>
+   
       <div
         className={`px-7 py-8 rounded-lg flex flex-col md:flex-row items-center justify-center`}
       >

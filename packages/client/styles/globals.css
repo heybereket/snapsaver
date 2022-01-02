@@ -15,3 +15,6 @@ body {
 ::file-selector-button {
   display: none;
 }
+  input[type="file"] {
+	display: none;
+  }

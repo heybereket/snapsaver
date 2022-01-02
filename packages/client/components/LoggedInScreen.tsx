@@ -30,18 +30,17 @@ const Title = (props: any) => {
 };
 
 export const LoggedInScreen = () => {
-  const [isDownloadReady, setIsDownloadReady] = useState(false);
-  const [existingUpload, setExistingUpload] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState("");
-  const { user } = useUser();
+  const [memoriesStatus, setMemoriesStatus] = useState({});
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [processingDone, setProcessingDone] = useState(false);
 
   const JSONHandler = async (e: any) => {
-    setUploadedFile(e.target.files?.[0] as string);
-  }
+    setUploadedFile(e.target.files?.[0]);
+  };
 
   const ProcessJSONHandler = async () => {
     const form = new FormData();
-    form.append("image", uploadedFile as string);
+    form.append("image", uploadedFile as unknown as string);
 
     await axios
       .post(`${API_URL}/json/upload`, form, {
@@ -69,34 +68,12 @@ export const LoggedInScreen = () => {
       });
   };
 
-  const ZIPHandler = async () => {
-    await axios
-      .get(`${API_URL}/zip/link`, {
-        withCredentials: true,
-      })
-      .then((res) => (window.location.href = res.data.link))
-      .catch((error) => {
-        console.log(error.message);
-      });
-  };
-
-  const isZIPReady = async () => {
-    return await axios
-      .get(`${API_URL}/zip/status`, {
-        withCredentials: true,
-      })
-      .then((res) => setIsDownloadReady(res.data.ready))
-      .catch((error) => {
-        console.log(error.message);
-      });
-  };
-
-  const checkExistingUpload = async () => {
+  const checkMemoryStatus = async () => {
     return await axios
       .get(`${API_URL}/json/status`, {
         withCredentials: true,
       })
-      .then((res) => setExistingUpload(res.data.ready))
+      .then((res) => setMemoriesStatus(res.data))
       .catch((error) => {
         console.log(error.message);
       });
@@ -104,8 +81,7 @@ export const LoggedInScreen = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      await isZIPReady();
-      await checkExistingUpload();
+      await checkMemoryStatus();
     };
 
     fetch();
@@ -114,15 +90,35 @@ export const LoggedInScreen = () => {
   return (
     <>
       <div>
-        <div
-          className={`rounded-lg mb-2 flex items-center justify-center`}
-        >
-       <input
-                className="px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
-                onChange={JSONHandler}
-                type="file"
-              />
-      </div>
+        <div className={`rounded-lg mb-2 flex items-center justify-center`}>
+          <input
+            className="hidden w-[410px] px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
+            onChange={JSONHandler}
+            id="file-input"
+            type="file"
+          />
+          <label
+            htmlFor="file-input"
+            className="w-[410px] text-center px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
+          >
+            {uploadedFile ? uploadedFile.name : "Upload memories_history.json"}
+          </label>
+        </div>
+        <div className={`rounded-lg mb-2 flex items-center justify-center`}>
+          <button
+            className="w-[200px] px-5 py-3 mr-2 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
+            onClick={ProcessJSONHandler}
+          >
+            Process memories
+          </button>
+
+          <button
+            className={`w-[200px] px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${processingDone ? "hover:bg-primary hover:text-black" : "cursor-not-allowed opacity-50"}`}
+            onClick={DownloadHandler}
+          >
+            Save to Drive
+          </button>
+        </div>
       </div>
       <VideoEmbed />
     </>

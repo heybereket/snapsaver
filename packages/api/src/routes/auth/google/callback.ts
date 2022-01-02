@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { FastifyInstance } from "fastify";
-import { CLIENT_URL, IS_PRODUCTION } from "../../../lib/constants";
+import { CLIENT_URL, COOKIE_NAME, IS_PRODUCTION } from "../../../lib/constants";
 
 export default (fastify: FastifyInstance, opts, done) => {
   fastify.get("/callback", async (req, res) => {
@@ -8,7 +8,7 @@ export default (fastify: FastifyInstance, opts, done) => {
       await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
 
     res
-      .setCookie("snapsaver-token", token.access_token, {
+      .setCookie(COOKIE_NAME, token.access_token, {
         httpOnly: true,
         secure: IS_PRODUCTION,
         path: "/",
