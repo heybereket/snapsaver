@@ -8,11 +8,13 @@ generator client {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  numMemories Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  numMemories    Int?
+  activeDownload Boolean  @default(false)
+  betaUser       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Memory {
