@@ -3,6 +3,7 @@ import * as log from "../log";
 import { API_URL } from "../constants";
 import { resolve } from "path/posix";
 import memories from "../memories";
+import dayjs from "dayjs";
 
 class StorageGoogleDrive {
   Memories: any;
@@ -10,27 +11,6 @@ class StorageGoogleDrive {
   constructor() {
     this.Memories = new memories();
   }
-
-  public uploadMemoriesJson = async (accessToken: string, data: any) => {
-    try {
-      const drive = this.getGoogleDrive(accessToken);
-      const folderId = await this.getOrCreateSnapsaverFolderId(drive);
-      log.info("Target GDrive folder id: ", folderId);
-
-      this.createFileInFolder(
-        drive,
-        folderId,
-        "memories_history.json",
-        data,
-        "application/json"
-      );
-    } catch (err) {
-      log.error(
-        `Error uploading memories JSON to GDrive`,
-        err.errors.first().message
-      );
-    }
-  };
 
   public uploadMediaFile = async (
     accessToken: string,
@@ -63,7 +43,8 @@ class StorageGoogleDrive {
   };
 
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
-    const folderName = "Snapsaver";
+    const currentDateFormatted = dayjs().format("YYYY/MM/DD HH-mm-ss");
+    const folderName = `Snapsaver ${currentDateFormatted}`;
     const existingFolders: any[] = await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(
       (f) => f.name === folderName
