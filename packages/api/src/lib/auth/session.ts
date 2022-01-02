@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BetaAllowedUsers, COOKIE_NAME } from "../constants";
+import { COOKIE_NAME } from "../constants";
 import { FastifyReply, FastifyRequest } from "fastify";
 
 export const authenticateUser = async (
@@ -27,15 +27,15 @@ export const authenticateUser = async (
     req.email = googleUserInfo.email;
     req.googleAccessToken = token;
 
-    if (
-      BetaAllowedUsers.ENABLED &&
-      !BetaAllowedUsers.EMAILS.includes(req.email as string)
-    ) {
-      res.send({
-        success: false,
-        message: `You aren't allowed to use Snapsaver...yet`,
-      });
-    }
+    // if (
+    //   BetaAllowedUsers.ENABLED &&
+    //   !BetaAllowedUsers.EMAILS.includes(req.email as string)
+    // ) {
+    //   res.send({
+    //     success: false,
+    //     message: `You aren't allowed to use Snapsaver...yet`,
+    //   });
+    // }
 
     return googleUserInfo;
   } catch (err) {
