@@ -1,5 +1,5 @@
 export const VideoEmbed = () => {
-  const videoURL = "https://www.youtube.com/embed/EdHGU22uMOI";
+  const videoURL = "https://youtu.bed/1atgO0NfNxc"
 
   return (
     <div className="flex items-center justify-center mt-5 aspect-w-16 aspect-h-9">
