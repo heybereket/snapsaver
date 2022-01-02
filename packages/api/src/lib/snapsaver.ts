@@ -198,11 +198,11 @@ class SnapSaver implements ISnapSaver {
       });
 
       Promise.all(promises);
-      await mailer(
-        email as string,
-        "[Snapsaver] - Your download is ready",
-        `Hey ${email},\n\nYour files have been successfully downloaded.\n\nThanks,\nSnapsaver`
-      );
+      // await mailer(
+      //   email as string,
+      //   "[Snapsaver] - Your download is ready",
+      //   `Hey ${email},\n\nYour files have been successfully downloaded.\n\nThanks,\nSnapsaver`
+      // );
     } catch (err) {
       log.error(err);
     }
