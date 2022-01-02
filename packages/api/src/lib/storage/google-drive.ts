@@ -57,14 +57,14 @@ class StorageGoogleDrive {
   };
 
   public getTargetFolderId = async (accessToken) => {
-      const drive = this.getGoogleDrive(accessToken);
-      const folderId = await this.getOrCreateSnapsaverFolderId(drive);
-      return folderId;
-  }
+    const drive = this.getGoogleDrive(accessToken);
+    const folderId = await this.getOrCreateSnapsaverFolderId(drive);
+    return folderId;
+  };
 
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
     const folderName = "Snapsaver";
-    const existingFolders: any[] =await this.listFiles(drive);
+    const existingFolders: any[] = await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(
       (f) => f.name === folderName
     );
@@ -157,10 +157,10 @@ class StorageGoogleDrive {
           } else {
             log.success("Created file, id: ", file.data.id);
             // TODO: Test if this part is working, seems not in sync with file actually saving to GDrive
-            if (memoryId) {
-              await this.Memories.updateMemoryStatusSuccess(memoryId);
-              resolve(file.data.id);
-            }
+            // if (memoryId) {
+            //   await this.Memories.updateMemoryStatusSuccess(memoryId);
+            // }
+            resolve(file.data.id);
           }
         }
       );

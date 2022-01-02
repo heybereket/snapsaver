@@ -1,7 +1,20 @@
+import axios from 'axios';
 import {API_URL} from './constants';
 
+import useSWR from 'swr';
+
+export const useUser = () => {
+    const {data, error} = useSWR('auth/google/@me');
+    const user = data?.data;
+
+    return {
+        user,
+        isLoading: !error && !data,
+        isError: error,
+    };
+};
+
 export const fetcher = async (url: string, init: Partial<RequestInit> = {}) => {
-    console.log(`${API_URL}/${url}`)
 	return await fetch(`${API_URL}/${url}`, {
 		mode: 'cors',
 		...init,

@@ -3,7 +3,7 @@ import Image from "next/image";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { API_URL } from "../lib/constants";
-import { useUser } from "../hooks/useUser";
+import { LandingContent } from "./LandingContent";
 import { VideoEmbed } from "./VideoEmbed";
 
 export const Container = (props: any) => {
@@ -90,7 +90,7 @@ export const LoggedInScreen = () => {
       .then((res) => {
         const { pending, failed, success, expectedTotal } = res.data;
         setMemoriesStatus(res.data);
-        setProcessingDone(pending + failed == expectedTotal);
+        setProcessingDone(pending + success + failed == expectedTotal);
       })
       .catch((error) => {
         console.log(error.message);
@@ -109,7 +109,9 @@ export const LoggedInScreen = () => {
     <>
       <div>
         <div className="flex items-center justify-center mb-3 text-xl">
-          <span className="text-center">Upload your <Codeblock content="memories_history.json" /></span>
+          <span className="text-center">
+            Upload your <Codeblock content="memories_history.json" />
+          </span>
         </div>
 
         <div className={`rounded-lg mb-2 flex items-center justify-center`}>
@@ -139,7 +141,7 @@ export const LoggedInScreen = () => {
           <button
             className={`w-[200px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${
               processingDone
-                ? "hover:bg-primary hover:text-black"
+                ? "hover:bg-green-300 text-black bg-green-500"
                 : "cursor-not-allowed opacity-50"
             }`}
             onClick={DownloadHandler}
@@ -162,13 +164,13 @@ export const LoggedInScreen = () => {
                   <span className="text-red-500 font-bold">
                     {memoriesStatus.failed}
                   </span>{" "}
-                  links aren&apos;t working for some reason.
+                  links appear to be broken.
                 </>
               )}
             </div>
           </div>
         ) : (
-          <div>
+          <div className="flex items-center justify-center mt-8 mb-10 text-secondary text-xl">
             Processing memories...{" "}
             {Object.keys(memoriesStatus).length !== 0 &&
               `${memoriesStatus.pending + memoriesStatus.failed}/${
@@ -177,7 +179,8 @@ export const LoggedInScreen = () => {
           </div>
         )}
       </div>
-      <VideoEmbed />
+      
+      <LandingContent />
     </>
   );
 };

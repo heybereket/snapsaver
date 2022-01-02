@@ -1,20 +1,17 @@
 import { API_URL } from "../lib/constants";
-import { useUser } from "../hooks/useUser";
 import { Google } from "./icons/Google";
-import type { NextPage } from "next";
 import Image from "next/image";
-export const Header: NextPage = () => {
-  const { user } = useUser();
 
+export const Header = (props: {user: any}) => {
   return (
     <>
       <div className="absolute right-4 md:right-10 top-10 h-16 pb-5">
         <a
-          href={user ? `${API_URL}/auth/google/logout`: `${API_URL}/auth/google`}
+          href={props.user ? `${API_URL}/auth/google/logout`: `${API_URL}/auth/google`}
         >
           <button className="group bg-red-500 px-5 py-3 flex items-center text-sm w-auto rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black text-center text-secondary">
             <Google className="fill-secondary mr-2 group-hover:fill-black" />
-            {user ? <span>Sign out</span> : <span>Sign in/up -&gt;</span>}
+            {props.user ? <span>Sign out</span> : <span>Sign in/up -&gt;</span>}
           </button>
         </a>
       </div>

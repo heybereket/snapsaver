@@ -1,9 +1,12 @@
 import type { NextPage } from "next";
-import { useUser } from "../hooks/useUser";
 import { LoggedInScreen } from "../components/LoggedInScreen";
 import { Header } from "../components/Header";
 import { VideoEmbed } from "../components/VideoEmbed";
 import { Footer } from "../components/Footer";
+import { LandingContent } from "../components/LandingContent";
+import { fetcher, useUser } from "../lib/fetcher";
+import useSWR from "swr";
+import { API_URL } from "../lib/constants";
 
 export const Container = (props: any) => {
   return (
@@ -17,13 +20,18 @@ export const Container = (props: any) => {
 };
 
 const Home: NextPage = () => {
-  const { user } = useUser();
+  const { user, isLoading, isError } = useUser();
+
+  if (isLoading || isError) return (<>
+  <Container className={`md:mt-20`}>
+  </Container>
+</>)
 
   if (user) {
     return (
       <>
         <Container className={`md:mt-20`}>
-          <Header />
+          <Header user={user}/>
           <LoggedInScreen />
           <Footer />
         </Container>
@@ -33,8 +41,8 @@ const Home: NextPage = () => {
     return (
       <>
         <Container className={`md:mt-20`}>
-          <Header />
-          <VideoEmbed />
+          <Header user={user}/>
+          <LandingContent />
           <Footer />
         </Container>
       </>
