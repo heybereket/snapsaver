@@ -43,7 +43,7 @@ class StorageGoogleDrive {
   };
 
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
-    const currentDateFormatted = dayjs().format("YYYY/MM/DD HH-mm-ss");
+    const currentDateFormatted = dayjs().format("YYYY/MM/DD h:mma");
     const folderName = `Snapsaver ${currentDateFormatted}`;
     const existingFolders: any[] = await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(

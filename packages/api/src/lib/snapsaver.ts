@@ -104,7 +104,6 @@ class SnapSaver implements ISnapSaver {
         );
       } else if (storageProvider == StorageProvider.GOOGLE) {
         const stream = Readable.from((await data.toBuffer()).toString());
-        this.StorageGoogleDrive.uploadMemoriesJson(accessToken, stream);
       }
 
       this.processMemoriesJsonInParallel(email, memoriesJson);
