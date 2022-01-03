@@ -18,12 +18,6 @@ interface ISnapSaver {
   Memories: any;
   StorageS3: any;
   getMemoriesJson: (email: string, local: boolean) => void;
-  filterMemories: (
-    memories: any,
-    startDate: Date,
-    endDate: Date,
-    type: string
-  ) => void;
   downloadMemories: (
     email: string,
     startDate: string,
@@ -87,33 +81,6 @@ class SnapSaver implements ISnapSaver {
    * @param {Date} startDate
    * @param {Date} endDate
    */
-  public filterMemories = async (
-    memories: Memory[],
-    startDate: Date,
-    endDate: Date,
-    type: string
-  ) => {
-    const validDates =
-      Object.prototype.toString.call(startDate) === "[object Date]" &&
-      Object.prototype.toString.call(endDate) === "[object Date]";
-    if (type !== "ALL") {
-      return memories.filter((memory) => memory.type === type);
-    } else if (validDates) {
-      return memories.filter((memory: Memory) => {
-        const date = new Date(memory.date);
-        return date >= startDate && date <= endDate;
-      });
-    } else if (validDates && type !== "ALL") {
-      return memories.filter(
-        (memory) =>
-          memory.type === type &&
-          new Date(memory.date) >= startDate &&
-          new Date(memory.date) <= endDate
-      );
-    } else {
-      return memories;
-    }
-  };
 
   /**
    * Downloads (in parallel) all memories that are PENDING download from Snapchat and saves them to S3
@@ -125,7 +92,7 @@ class SnapSaver implements ISnapSaver {
     email: string,
     startDate: string,
     endDate: string,
-    type: string,
+    type: string = "ALL",
     googleDriveAccessToken: string,
     jobDoneCallback: Function
   ) => {
@@ -135,15 +102,11 @@ class SnapSaver implements ISnapSaver {
         data: { activeDownload: true },
       });
 
-      const memories: Memory[] = await this.Memories.getMemories(
+      const filteredMemories = await this.Memories.filterMemories(
         email,
-        Status.PENDING
-      );
-      const filteredMemories = await this.filterMemories(
-        memories,
-        new Date(startDate),
-        new Date(endDate),
-        type
+        startDate,
+        endDate,
+        type !== "ALL" && type
       );
 
       if (!filteredMemories.length) {

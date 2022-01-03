@@ -1,4 +1,4 @@
-import Queue from "bee-queue";
+import Queue from "bull";
 import * as log from "../log";
 import { jobQueueOptions } from "./config";
 import { prisma } from "../connections/prisma";
@@ -11,7 +11,7 @@ const JOB_NAME = "DOWNLOAD";
 const downloadQueue = new Queue(JOB_NAME.toLowerCase(), jobQueueOptions);
 
 export const downloadMemoriesJob = (data) => {
-  return downloadQueue.createJob(data).save();
+  return downloadQueue.add(data);
 };
 
 downloadQueue.process((job, done) => {
@@ -28,7 +28,7 @@ downloadQueue.process((job, done) => {
   );
 });
 
-downloadQueue.on("job succeeded", async (jobId, result) => {
+downloadQueue.on("completed", async (jobId, result) => {
   log.success(`[${JOB_NAME}] job ${jobId} succeeded - ${result.message}`);
 
   if (result.email) {
@@ -41,14 +41,7 @@ downloadQueue.on("job succeeded", async (jobId, result) => {
   }
 });
 
-downloadQueue.on("job retrying", (jobId, err) => {
-  log.error(
-    `[${JOB_NAME}] job ${jobId} failed but is being retried, err - ${err.message}`
-  );
-  // TODO: Update DB
-});
-
-downloadQueue.on("job failed", (jobId, err) => {
+downloadQueue.on("failed", (jobId, err) => {
   log.success(`[${JOB_NAME}] job ${jobId} failed with error - ${err.message}`);
 
   // TODO: Update DB
