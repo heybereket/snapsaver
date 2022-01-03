@@ -1,11 +1,9 @@
 {
     "compilerOptions": {
       "sourceMap": true,
-      "target": "es2017",
       "outDir": "dist",
       "strict": false,
       "lib": ["esnext"],
-      "moduleResolution": "node",
       "esModuleInterop": true,
       "strictNullChecks": true
     }
