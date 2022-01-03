@@ -1,7 +1,6 @@
 import { google } from "googleapis";
 import * as log from "../log";
 import { API_URL } from "../constants";
-import { resolve } from "path/posix";
 import memories from "../memories";
 import dayjs from "dayjs";
 
@@ -96,7 +95,7 @@ class StorageGoogleDrive {
             reject(err);
           }
 
-          console.log(`Created folder ${name}. Id: ${file.data.id}`);
+          log.success(`Created folder ${name}. Id: ${file.data.id}`);
           resolve(file.data.id);
         }
       );
@@ -136,11 +135,7 @@ class StorageGoogleDrive {
             );
             reject(err);
           } else {
-            log.success("Created file, id: ", file.data.id);
-            // TODO: Test if this part is working, seems not in sync with file actually saving to GDrive
-            // if (memoryId) {
-            //   await this.Memories.updateMemoryStatusSuccess(memoryId);
-            // }
+            log.success(`Created file ${name}`);
             resolve(file.data.id);
           }
         }

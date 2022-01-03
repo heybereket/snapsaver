@@ -9,9 +9,7 @@ import { URL } from "url";
 import * as log from "../lib/log";
 import pLimit from "p-limit";
 import dayjs from "dayjs";
-import { mailer } from "./connections/ses";
-import { Readable } from "stream";
-import { google } from "googleapis";
+import { prisma } from "./connections/prisma";
 
 // Concurrency of 10 promises at once
 const limit = pLimit(10);
@@ -19,12 +17,6 @@ const limit = pLimit(10);
 interface ISnapSaver {
   Memories: any;
   StorageS3: any;
-  uploadMemoriesJson: (
-    data: any,
-    email: string,
-    storageProvider: StorageProvider,
-    accessToken?: string
-  ) => Promise<[boolean, any]>;
   getMemoriesJson: (email: string, local: boolean) => void;
   filterMemories: (
     memories: any,
@@ -36,11 +28,12 @@ interface ISnapSaver {
     email: string,
     startDate: string,
     endDate: string,
-    type: string
+    type: string,
+    googleAccessToken: string,
+    callback: Function
   ) => void;
-  isMemoriesJsonAvailable: (
-    email: string
-  ) => Promise<{
+  validateMemoriesJson: (json: any) => boolean;
+  isMemoriesJsonAvailable: (email: string) => Promise<{
     pending: number;
     success: number;
     failed: number;
@@ -73,47 +66,6 @@ class SnapSaver implements ISnapSaver {
     this.StorageS3 = new storageS3();
     this.StorageGoogleDrive = new storageGoogleDrive();
   }
-
-  /**
-   * Uploads a valid memories_history.json to S3 and processes each link in file.
-   * @param {any} data
-   * @param {string} email
-   */
-  public uploadMemoriesJson = async (
-    data: any,
-    email: string,
-    storageProvider: StorageProvider,
-    accessToken?: string
-  ): Promise<[boolean, any]> => {
-    let isValid = false;
-    try {
-      const buffer = Buffer.isBuffer(data) ? data : await data.toBuffer();
-      const memoriesJson: JSON = util.bufferToJson(buffer);
-      const fileName = "memories_history.json";
-
-      this.validateMemoriesJson(memoriesJson);
-      isValid = true;
-
-      // Upload valid memories_history.json to cloud storage
-      if (storageProvider == StorageProvider.S3) {
-        this.StorageS3.uploadDataToS3(
-          buffer,
-          fileName,
-          email,
-          FILE_TYPE.REGULAR
-        );
-      } else if (storageProvider == StorageProvider.GOOGLE) {
-        const stream = Readable.from((await data.toBuffer()).toString());
-      }
-
-      this.processMemoriesJsonInParallel(email, memoriesJson);
-
-      return [isValid, memoriesJson];
-    } catch (err) {
-      log.error(`Error uploading memories JSON`, err);
-      return [isValid, err];
-    }
-  };
 
   /**
    * Returns the memories_history.json stored for the user (or from local disk if specified)
@@ -160,7 +112,6 @@ class SnapSaver implements ISnapSaver {
    * Downloads (in parallel) all memories that are PENDING download from Snapchat and saves them to S3
    *
    * TODO: Add meta data to image/video so it can be filtered by date in file managers
-   * TODO: Finalize naming scheme for files
    * TODO: Resuming downloads if failed midway
    */
   public downloadMemories = async (
@@ -168,16 +119,33 @@ class SnapSaver implements ISnapSaver {
     startDate: string,
     endDate: string,
     type: string,
-    googleDriveAccessToken?: string
+    googleDriveAccessToken: string,
+    jobDoneCallback: Function
   ) => {
     try {
-      const memories: Memory[] = await this.Memories.getMemories(email, Status.PENDING);
+      await prisma.user.update({
+        where: { email: email },
+        data: { activeDownload: true },
+      });
+
+      const memories: Memory[] = await this.Memories.getMemories(
+        email,
+        Status.PENDING
+      );
+
       const filteredMemories = await this.filterMemories(
         memories,
         new Date(startDate),
         new Date(endDate),
         type
       );
+
+      if (!filteredMemories.length) {
+        log.info(`No memories to download - ${email}`);
+        jobDoneCallback(null, { email, message: "done" });
+        return;
+      }
+
       const memoryRequests: object[] = filteredMemories.map(
         (memory: Memory): MemoryRequest => {
           return {
@@ -189,21 +157,34 @@ class SnapSaver implements ISnapSaver {
         }
       );
 
-      const googleFolderId = await this.StorageGoogleDrive.getTargetFolderId(googleDriveAccessToken);
+      let googleFolderId = "";
+      try {
+        googleFolderId = await this.StorageGoogleDrive.getTargetFolderId(
+          googleDriveAccessToken
+        );
+      } catch (err) {
+        log.error(`Error getting target Google Drive folder - ${email}`, err);
+        jobDoneCallback(err);
+        return;
+      }
+
       // Wait for all downloads to be resolved
       let promises = memoryRequests.map((memoryRequest: any) => {
         // Applies concurrency limit
-        return limit(async () => this.requestAsync(memoryRequest, googleFolderId, googleDriveAccessToken));
+        return limit(async () =>
+          this.requestAsync(
+            memoryRequest,
+            googleFolderId,
+            googleDriveAccessToken
+          )
+        );
       });
 
-      Promise.all(promises);
-      // await mailer(
-      //   email as string,
-      //   "[Snapsaver] - Your download is ready",
-      //   `Hey ${email},\n\nYour files have been successfully downloaded.\n\nThanks,\nSnapsaver`
-      // );
+      await Promise.all(promises);
+      jobDoneCallback(null, { email, message: "done" });
     } catch (err) {
-      log.error(err);
+      log.error(`Error downloading memories - ${email}`, err);
+      jobDoneCallback(err);
     }
 
     return memories;
@@ -230,10 +211,16 @@ class SnapSaver implements ISnapSaver {
 
     return {
       // ready: await this.StorageS3.objectExistsInS3(fileKey),
-      pending: memories.filter((memory: Memory) => memory.status == Status.PENDING).length,
-      success: memories.filter((memory: Memory) => memory.status == Status.SUCCESS).length,
-      failed: memories.filter((memory: Memory) => memory.status == Status.FAILED).length,
-      expectedTotal: user ? user.numMemories : null
+      pending: memories.filter(
+        (memory: Memory) => memory.status == Status.PENDING
+      ).length,
+      success: memories.filter(
+        (memory: Memory) => memory.status == Status.SUCCESS
+      ).length,
+      failed: memories.filter(
+        (memory: Memory) => memory.status == Status.FAILED
+      ).length,
+      expectedTotal: user ? user.numMemories : null,
     };
   };
 
@@ -299,52 +286,83 @@ class SnapSaver implements ISnapSaver {
    * @param {json} any
    * @throws {Error}
    */
-  private validateMemoriesJson = (json: any) => {
-    const schema = z.object({
-      "Saved Media": z.array(
-        z.object({
-          Date: z.string(),
-          "Media Type": z.enum(["PHOTO", "VIDEO"]),
-          "Download Link": z
-            .string()
-            .refine((link) => new URL(link).hostname == "app.snapchat.com", {
-              message: "Download links must have hostname: app.snapchat.com",
-            }),
-        })
-      ),
-    });
+  public validateMemoriesJson = (json: any): boolean => {
+    try {
+      const schema = z.object({
+        "Saved Media": z.array(
+          z.object({
+            Date: z.string(),
+            "Media Type": z.enum(["PHOTO", "VIDEO"]),
+            "Download Link": z
+              .string()
+              .refine((link) => new URL(link).hostname == "app.snapchat.com", {
+                message: "Download links must have hostname: app.snapchat.com",
+              }),
+          })
+        ),
+      });
 
-    schema.parse(json);
+      schema.parse(json);
+      return true;
+    } catch (err) {
+      log.error(err);
+      return false;
+    }
   };
 
   /**
    * Adds each link in memories_history.json to Postgres
    */
-  private processMemoriesJsonInParallel = async (email: string, json: JSON) => {
-    const memories = json["Saved Media"] as any[];
+  public processMemoriesJsonInParallel = async (
+    email: string,
+    json: JSON,
+    jobDoneCallback: Function
+  ) => {
+    return new Promise<void>(async (resolve, reject) => {
+      const memories = json["Saved Media"] as any[];
 
-    // Delete existing records for this user to start from new
-    await this.Memories.deleteManyByEmail(email);
+      // Delete existing records for this user to start from new
+      await this.Memories.deleteManyByEmail(email);
 
-    let promises = memories.map((memory: any) => {
-      // Applies concurrency limit
-      return limit(async () => this.getMemoryObjectToSave(email, memory));
+      // If dev env vars are defined, process a smaller chunk of memories
+      const memoriesToProcess = process.env.DEV_FILE_LIMIT
+        ? memories.slice(0, process.env.DEV_FILE_LIMIT as unknown as number)
+        : memories;
+      const chunkSize = process.env.DEV_CHUNK_SIZE
+        ? (process.env.DEV_CHUNK_SIZE as unknown as number)
+        : 100;
+
+      let promises = memoriesToProcess.map((memory: any) => {
+        // Applies concurrency limit
+        return limit(async () => this.getMemoryObjectToSave(email, memory));
+      });
+
+      const chunks = util.sliceIntoChunks(promises, chunkSize);
+
+      log.info(
+        `[UPLOAD] started extracting links, ${chunkSize} at a time - ${email}`
+      );
+
+      const promiseChunks = chunks.map((chunk, index) => {
+        // Applies concurrency limit
+        return limit(async () =>
+          this.processChunkMemories(email, chunk, index, chunks.length)
+        );
+      });
+
+      // Process each chunk of 100
+      await Promise.all(promiseChunks);
+
+      log.info(`[UPLOAD] finished extracting links - ${email}`);
+      jobDoneCallback(null, { email, message: "done" });
+      resolve();
     });
+  };
 
-    const CHUNK_SIZE = 100;
-    const chunks = util.sliceIntoChunks(promises, CHUNK_SIZE);
-
-    chunks.forEach(async (chunk, index) => {
-      if (index == 0)
-        log.event(`Started extracting links, ${CHUNK_SIZE} at a time.`);
-
-      const processedMemories = await Promise.all(chunk);
-      this.Memories.createMemories(processedMemories);
-      log.success(`Procressed chunk ${index + 1}/${chunks.length}`);
-
-      if (index == chunks.length - 1)
-        log.event(`Finished extracting links to Postgres`);
-    });
+  private processChunkMemories = async (email, chunk, index, total) => {
+    const processedMemories = await Promise.all(chunk);
+    await this.Memories.createMemories(processedMemories);
+    log.info(`[UPLOAD] processed ${index + 1}/${total} chunks - ${email}`);
   };
 
   /**
@@ -393,19 +411,29 @@ class SnapSaver implements ISnapSaver {
   /**
    * Asynchronously download the actual image/video file for this memory and save it to S3
    */
-  private requestAsync = (memoryRequest: MemoryRequest, googleFolderId?: string, googleDriveAccessToken?: string) => {
+  private requestAsync = (
+    memoryRequest: MemoryRequest,
+    googleFolderId?: string,
+    googleDriveAccessToken?: string
+  ) => {
     return new Promise((resolve, reject) => {
       const { id, email, downloadLink, fileName } = memoryRequest;
       axios({
         method: "get",
         url: downloadLink,
-        responseType: "stream"
+        responseType: "stream",
         // responseType: "arraybuffer", // TODO: Currently S3 expects arraybuffer, GDrive expects steam lol
       }).then(async (res) => {
         try {
           if (googleDriveAccessToken) {
             // Upload to GDrive
-            await this.StorageGoogleDrive.uploadMediaFile(googleDriveAccessToken, googleFolderId, fileName, res.data, memoryRequest.id);
+            await this.StorageGoogleDrive.uploadMediaFile(
+              googleDriveAccessToken,
+              googleFolderId,
+              fileName,
+              res.data,
+              memoryRequest.id
+            );
           } else {
             // Upload to S3
             const buffer = Buffer.from(res.data, "binary");
@@ -418,7 +446,7 @@ class SnapSaver implements ISnapSaver {
             );
           }
 
-          log.success(`Successfully downloaded ${fileName}`);
+          // log.success(`Successfully downloaded ${fileName}`);
           resolve("done");
         } catch (err) {
           log.error(`Error while downloading ${fileName}: ${err}`);

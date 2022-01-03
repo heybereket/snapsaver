@@ -1,40 +1,34 @@
 import { FastifyInstance } from "fastify";
 import { authenticateUser } from "../../lib/auth/session";
 import { MEGABYTE } from "../../lib/constants";
-import ss, { StorageProvider } from "../../lib/snapsaver";
-import memories from "../../lib/memories";
+import util from "../../lib/util";
+import ss from "../../lib/snapsaver";
+import { uploadMemoriesJob } from "../../lib/jobs/uploadQueue";
 
-const SnapSaver = new ss();
-const Memories = new memories();
+const Snapsaver = new ss();
 
 export default (fastify: FastifyInstance, opts, done) => {
   fastify.post(
     "/upload",
     { preHandler: [authenticateUser] },
     async (req, res) => {
-      const { email, googleAccessToken } = req;
-      const options = { limits: { fileSize: 8 * MEGABYTE } };
-      const data = await req.file(options);
-
-      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email as string, StorageProvider.GOOGLE, googleAccessToken);
-      const numMemories = isValid ? result["Saved Media"]?.length : 0;
-
-      await Memories.createOrUpdateUser(email as string, numMemories);
-      await res.send({ isValid, numMemories, email });
-    }
-  );
-
-  fastify.post(
-    "/upload/s3",
-    { preHandler: [authenticateUser] },
-    async (req, res) => {
-      const options = { limits: { fileSize: 8 * MEGABYTE } };
-      const data = await req.file(options);
       const { email } = req;
-      const [isValid, result] = await SnapSaver.uploadMemoriesJson(data, email as string, StorageProvider.S3);
-      const numMemories = isValid ? result["Saved Media"]?.length : 0;
+      const options = { limits: { fileSize: 8 * MEGABYTE } };
+      const data = await req.file(options);
+      const buffer = await data.toBuffer();
+      const memoriesJson: JSON = util.bufferToJson(buffer);
+      const isValid = Snapsaver.validateMemoriesJson(memoriesJson);
 
-      await res.send({ isValid, numMemories, email, result });
+      if (!isValid) {
+        return res.send({ message: "invalid" });
+      }
+
+      uploadMemoriesJob({
+        memoriesJson,
+        email,
+      });
+
+      res.send({ message: "started" });
     }
   );
 

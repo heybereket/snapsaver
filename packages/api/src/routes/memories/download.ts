@@ -1,9 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { authenticateUser } from "../../lib/auth/session";
-import ss from "../../lib/snapsaver";
-
-const SnapSaver = new ss();
+import { downloadMemoriesJob } from "../../lib/jobs/downloadQueue";
 
 const schema = z.object({
   startDate: z.string().optional(),
@@ -18,11 +16,16 @@ export default (fastify: FastifyInstance, opts, done) => {
     async (req: any, res) => {
       const { startDate, endDate, type } = schema.parse(req.body);
       const { email, googleAccessToken } = req;
-      SnapSaver.downloadMemories(email, startDate as string, endDate as string, type as string, googleAccessToken);
 
-      await res.send({
-        message: "started",
+      downloadMemoriesJob({
+        email,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        type: type as string,
+        googleAccessToken,
       });
+
+      res.send({ message: "started" });
     }
   );
 

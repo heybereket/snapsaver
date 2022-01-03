@@ -2,7 +2,6 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import AdmZip from "adm-zip";
-import { IS_PRODUCTION } from "./constants";
 import * as log from "../lib/log";
 
 const util = {
