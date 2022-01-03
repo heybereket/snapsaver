@@ -2,8 +2,8 @@
 export const jobQueueOptions = {
   removeOnSuccess: true,
   redis: {
-    host: process.env.REDIS_DB_HOST,
-    port: process.env.REDIS_DB_PORT,
-    password: process.env.REDIS_DB_PASS,
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD,
   },
 };
