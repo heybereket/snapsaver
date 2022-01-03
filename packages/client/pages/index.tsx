@@ -4,9 +4,8 @@ import { Header } from "../components/Header";
 import { VideoEmbed } from "../components/VideoEmbed";
 import { Footer } from "../components/Footer";
 import { LandingContent } from "../components/LandingContent";
-import { fetcher, useUser } from "../lib/fetcher";
-import useSWR from "swr";
-import { API_URL } from "../lib/constants";
+import { useUser } from "../lib/fetcher";
+import Image from "next/image";
 
 export const Container = (props: any) => {
   return (
@@ -25,7 +24,29 @@ const Home: NextPage = () => {
   if (isLoading || isError)
     return (
       <>
-        <Container className={`md:mt-20`}></Container>
+        <Container className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}>
+        <div
+        className={`px-7 py-8 rounded-lg flex flex-col md:flex-row items-center justify-center mb-5 opacity-25`}
+      >
+        <div className="mt-10 md:m-0">
+          <Image
+            className="py-2 pr-4 ml-8 mt-16"
+            src="/assets/snapsaver-logo.png"
+            alt="Snapsaver Logo"
+            width={70}
+            height={68}
+          />
+        </div>
+        <div className="flex flex-col px-4">
+          <p className="text-center text-4xl md:text-6xl font-bold text-primary">
+            Snapsaver
+          </p>
+          <span className="text-center md:text-lg text-secondary">
+            Backup your Snapchat memories
+          </span>
+        </div>
+      </div>
+        </Container>
       </>
     );
 

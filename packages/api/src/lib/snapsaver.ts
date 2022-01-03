@@ -93,18 +93,25 @@ class SnapSaver implements ISnapSaver {
     endDate: Date,
     type: string
   ) => {
-    if (type) {
+    const validDates =
+      Object.prototype.toString.call(startDate) === "[object Date]" &&
+      Object.prototype.toString.call(endDate) === "[object Date]";
+    if (type !== "ALL") {
       return memories.filter((memory) => memory.type === type);
-    } else if (
-      String(startDate) == "Invalid Date" &&
-      String(endDate) == "Invalid Date"
-    ) {
-      return memories;
-    } else {
+    } else if (validDates) {
       return memories.filter((memory: Memory) => {
         const date = new Date(memory.date);
         return date >= startDate && date <= endDate;
       });
+    } else if (validDates && type !== "ALL") {
+      return memories.filter(
+        (memory) =>
+          memory.type === type &&
+          new Date(memory.date) >= startDate &&
+          new Date(memory.date) <= endDate
+      );
+    } else {
+      return memories;
     }
   };
 
@@ -132,7 +139,6 @@ class SnapSaver implements ISnapSaver {
         email,
         Status.PENDING
       );
-
       const filteredMemories = await this.filterMemories(
         memories,
         new Date(startDate),

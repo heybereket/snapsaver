@@ -21,14 +21,6 @@ const Codeblock = (props: any) => {
   return <code className="font-monospace text-primary">{props.content}</code>;
 };
 
-const Title = (props: any) => {
-  return (
-    <h1 className="font-bold text-3xl text-secondary mb-4">
-      <span className="text-gray-400">{props.number}.</span> {props.title}
-    </h1>
-  );
-};
-
 type MemoriesStatus = {
   expectedTotal: number | null;
   pending: number;
@@ -45,6 +37,10 @@ export const LoggedInScreen = () => {
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processingDone, setProcessingDone] = useState(false);
+  const [mediaType, setMediaType] = useState<string>("ALL");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [moreOptions, setMoreOptions] = useState<boolean>(false);
 
   const JSONHandler = async (e: any) => {
     setUploadedFile(e.target.files?.[0]);
@@ -69,12 +65,15 @@ export const LoggedInScreen = () => {
   };
 
   const DownloadHandler = async () => {
-    await axios
+    return await axios
       .post(
         `${API_URL}/memories/download`,
-        {},
+        { type: mediaType, startDate, endDate },
         {
           withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       )
       .catch((error) => {
@@ -150,7 +149,7 @@ export const LoggedInScreen = () => {
           </button>
         </div>
         {processingDone ? (
-          <div className="flex items-center justify-center mt-8 mb-10">
+          <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
               You have{" "}
               <span className="text-green-500 font-bold">
@@ -181,6 +180,67 @@ export const LoggedInScreen = () => {
           <div></div>
         )}
       </div>
+
+      <div className="flex items-center justify-center">
+        <button
+          onClick={() => {
+            setMoreOptions(!moreOptions);
+          }}
+          className="w-[410px] mt-3 text-md font-semibold text-center px-5 py-3 text-secondary cursor-pointer transition ease-out display-none md:block"
+        >
+          + More Options
+        </button>
+      </div>
+
+      {moreOptions && (
+        <div className="flex items-center justify-center mt-5">
+          <div className="bg-navbar rounded-lg w-[410px] px-10 py-8 mb-10">
+            <h3 className="text-secondary text-2xl mt-2 font-bold">
+              Date Range
+            </h3>
+            Default date is the entire range
+            <div className="flex mt-2 mb-5 flex-wrap">
+              <input
+                className={`w-[150px] px-5 py-3 mr-3 text-secondary bg-dark rounded-lg display-none md:block ${
+                  endDate && !startDate && "border-2 border-rose-500"
+                }`}
+                placeholder="Start Date"
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+
+              <input
+                className={`w-[150px] px-5 py-3 mr-3 text-secondary bg-dark rounded-lg display-none md:block ${
+                  startDate && !endDate && "border-2 border-rose-500"
+                }`}
+                placeholder="End Date"
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <h3 className="text-secondary text-2xl mt-2 font-bold">
+              Media Type
+            </h3>
+            Default type is &quot;ALL&quot;
+            <div className="flex mt-2 mb-5">
+              <button
+                className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
+                  mediaType === "PHOTO" && "bg-primary text-black"
+                }`}
+                onClick={() => setMediaType("PHOTO")}
+              >
+                PHOTO
+              </button>
+              <button
+                className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
+                  mediaType === "VIDEO" && "bg-primary text-black"
+                }`}
+                onClick={() => setMediaType("VIDEO")}
+              >
+                VIDEO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LandingContent />
     </>

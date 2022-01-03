@@ -9,13 +9,28 @@ body {
 	margin: 0;
 	font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu,
 		Cantarell, 'Helvetica Neue', sans-serif;
-  color: #fff;
-  font-weight: 400;
+	color: #fff;
+	font-weight: 400;
+	overflow: overlay;
 }
 
 ::file-selector-button {
-  display: none;
-}
-  input[type="file"] {
 	display: none;
-  }
+}
+
+input[type="file"] {
+	display: none;
+}
+
+::-webkit-scrollbar {
+	width: 5px;
+
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: transparent;
+}
