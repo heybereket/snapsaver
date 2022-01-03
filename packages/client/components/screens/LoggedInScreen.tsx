@@ -2,9 +2,9 @@ import type { NextPage } from "next";
 import Image from "next/image";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { API_URL } from "../lib/constants";
-import { LandingContent } from "./LandingContent";
-import { VideoEmbed } from "./VideoEmbed";
+import { API_URL } from "../../lib/constants";
+import { LandingContent } from "../LandingContent";
+import { VideoEmbed } from "../VideoEmbed";
 
 export const Container = (props: any) => {
   return (
