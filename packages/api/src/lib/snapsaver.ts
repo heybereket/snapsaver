@@ -285,6 +285,10 @@ class SnapSaver implements ISnapSaver {
   public processMemoriesJsonInParallel = async (
     email: string,
     json: JSON,
+    startDate: string,
+    endDate: string,
+    type: string = "ALL",
+    googleAccessToken: string,
     jobDoneCallback: Function
   ) => {
     return new Promise<void>(async (resolve, reject) => {
@@ -323,7 +327,7 @@ class SnapSaver implements ISnapSaver {
       await Promise.all(promiseChunks);
 
       log.info(`[UPLOAD] finished extracting links - ${email}`);
-      jobDoneCallback(null, { email, message: "done" });
+      jobDoneCallback(null, { email, message: "done", startDate, endDate, type, googleAccessToken });
       resolve();
     });
   };

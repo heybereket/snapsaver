@@ -8,7 +8,7 @@ import memories from "../memories";
 const SnapSaver = new ss();
 const Memories = new memories();
 const JOB_NAME = "DOWNLOAD";
-const downloadQueue = new Queue(JOB_NAME.toLowerCase(), jobQueueOptions);
+export const downloadQueue = new Queue(JOB_NAME.toLowerCase(), jobQueueOptions);
 
 export const downloadMemoriesJob = (data) => {
   return downloadQueue.add(data);
@@ -28,8 +28,8 @@ downloadQueue.process((job, done) => {
   );
 });
 
-downloadQueue.on("completed", async (jobId, result) => {
-  log.success(`[${JOB_NAME}] job ${jobId} succeeded - ${result.message}`);
+downloadQueue.on("completed", async (job, result) => {
+  log.success(`[${JOB_NAME}] job ${job.id} succeeded - ${result.message}`);
 
   if (result.email) {
     await prisma.user.update({
@@ -41,8 +41,8 @@ downloadQueue.on("completed", async (jobId, result) => {
   }
 });
 
-downloadQueue.on("failed", (jobId, err) => {
-  log.success(`[${JOB_NAME}] job ${jobId} failed with error - ${err.message}`);
+downloadQueue.on("failed", (job, err) => {
+  log.success(`[${JOB_NAME}] job ${job.id} failed with error - ${err.message}`);
 
   // TODO: Update DB
 });

@@ -36,7 +36,7 @@ export const LoggedInScreen = () => {
     failed: 0,
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [processingDone, setProcessingDone] = useState(false);
+  const [activeDownload, setActiveDownload] = useState(false);
   const [mediaType, setMediaType] = useState<string>("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -49,9 +49,12 @@ export const LoggedInScreen = () => {
   const ProcessJSONHandler = async () => {
     const form = new FormData();
     form.append("image", uploadedFile as unknown as string);
+    form.append("startDate", startDate);
+    form.append("endDate", endDate);
+    form.append("type", mediaType);
 
     await axios
-      .post(`${API_URL}/json/upload`, form, {
+      .post(`${API_URL}/memories/start`, form, {
         withCredentials: true,
         headers: {
           "Content-Type": `multipart/form-data`,
@@ -83,13 +86,14 @@ export const LoggedInScreen = () => {
 
   const checkMemoryStatus = async () => {
     return await axios
-      .get(`${API_URL}/json/status`, {
+      .get(`${API_URL}/memories/status`, {
         withCredentials: true,
       })
       .then((res) => {
-        const { pending, failed, success, expectedTotal } = res.data;
+        const { pending, failed, success, expectedTotal, activeDownload } =
+          res.data;
         setMemoriesStatus(res.data);
-        setProcessingDone(pending + success + failed == expectedTotal);
+        setActiveDownload(activeDownload);
       })
       .catch((error) => {
         console.log(error.message);
@@ -131,31 +135,24 @@ export const LoggedInScreen = () => {
           className={`rounded-lg text-xl mb-2 flex items-center justify-center`}
         >
           <button
-            className="w-[200px] px-5 py-3 mr-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block"
-            onClick={ProcessJSONHandler}
-          >
-            Process file
-          </button>
-
-          <button
-            className={`w-[200px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${
-              processingDone
+            className={`w-[410px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${
+              !activeDownload
                 ? "hover:bg-green-300 text-black bg-green-500"
                 : "cursor-not-allowed opacity-50"
             }`}
-            onClick={DownloadHandler}
+            onClick={ProcessJSONHandler}
           >
-            Save to Drive
+            {!activeDownload ? "Save to Drive" : "Downloading..."}
           </button>
         </div>
-        {processingDone ? (
+        {activeDownload ? (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
               You have{" "}
               <span className="text-green-500 font-bold">
                 {memoriesStatus.pending}
               </span>{" "}
-              memories ready to download 🤩{" "}
+              memories downloading 🤩{" "}
               {memoriesStatus.failed > 0 && (
                 <>
                   but
