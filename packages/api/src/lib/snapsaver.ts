@@ -284,7 +284,6 @@ class SnapSaver implements ISnapSaver {
    */
   public processMemoriesJsonInParallel = async (
     email: string,
-    json: JSON,
     startDate: string,
     endDate: string,
     type: string = "ALL",
@@ -292,6 +291,13 @@ class SnapSaver implements ISnapSaver {
     jobDoneCallback: Function
   ) => {
     return new Promise<void>(async (resolve, reject) => {
+      const user = await prisma.user.findUnique({ where: { email }})
+      if (!user)
+        return log.error(
+          `Failed to process memories JSON, user not found - ${email}`
+        );
+
+      const json = await this.StorageGoogleDrive.getFileById(googleAccessToken, user.memoriesFileId);
       const memories = json["Saved Media"] as any[];
 
       // Delete existing records for this user to start from new

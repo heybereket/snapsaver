@@ -13,11 +13,12 @@ export const uploadMemoriesJob = (data) => {
 };
 
 uploadQueue.process((job, done) => {
-  log.event(`[${JOB_NAME}] job ${job.id} processing - ${job.data.email} - start ${job.data.startDate}, end ${job.data.endDate}, type ${job.data.type}`);
+  log.event(
+    `[${JOB_NAME}] job ${job.id} processing - ${job.data.email} - start ${job.data.startDate}, end ${job.data.endDate}, type ${job.data.type}`
+  );
 
   SnapSaver.processMemoriesJsonInParallel(
     job.data.email,
-    job.data.memoriesJson,
     job.data.startDate,
     job.data.endDate,
     job.data.type,

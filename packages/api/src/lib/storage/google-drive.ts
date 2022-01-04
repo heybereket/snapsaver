@@ -11,6 +11,26 @@ class StorageGoogleDrive {
     this.Memories = new memories();
   }
 
+  public uploadMemoriesJson = async (accessToken: string, data: any) => {
+    try {
+      const drive = this.getGoogleDrive(accessToken);
+      const folderId = await this.getOrCreateSnapsaverFolderId(drive);
+      return await this.createFileInFolder(
+        drive,
+        folderId,
+        "memories_history.json",
+        data,
+        "application/json"
+      )
+        .then((fileId) => fileId)
+        .catch((err) => {
+          throw Error(err);
+        });
+    } catch (err) {
+      throw Error(err);
+    }
+  };
+
   public uploadMediaFile = async (
     accessToken: string,
     folderId: string,
@@ -40,6 +60,15 @@ class StorageGoogleDrive {
     const folderId = await this.getOrCreateSnapsaverFolderId(drive);
     return folderId;
   };
+
+  public getFileById = async (accessToken, fileId) => {
+    const drive = this.getGoogleDrive(accessToken);
+    var request = await drive.files.get({
+      'fileId': fileId,
+      'alt': 'media'
+    });
+    return request.data;
+  }
 
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
     const currentDateFormatted = dayjs().format("YYYY/MM/DD h:mma");
@@ -121,25 +150,24 @@ class StorageGoogleDrive {
     };
 
     return new Promise((resolve, reject) => {
-      drive.files.create(
-        {
+      drive.files
+        .create({
           resource: fileMetadata,
           media: media,
           fields: "id",
-        },
-        async (err, file) => {
-          if (err) {
-            log.error(
-              `Error creating file ${name} to GDrive: `,
-              err.errors[0].message
-            );
-            reject(err);
-          } else {
-            log.success(`Created file ${name}`);
-            resolve(file.data.id);
-          }
-        }
-      );
+        })
+        .then((file) => {
+          // TODO: Mark as success on DB
+          log.success(`Created file ${name}`);
+          resolve(file.data.id);
+        })
+        .catch((err) => {
+          log.error(
+            `Error creating file ${name} to GDrive: `,
+            err.errors[0].message
+          );
+          reject(err.errors[0].message);
+        });
     });
   };
 
