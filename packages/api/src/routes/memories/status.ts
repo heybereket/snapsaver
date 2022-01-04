@@ -9,7 +9,7 @@ export default (fastify: FastifyInstance, opts, done) => {
     "/status",
     { preHandler: [authenticateUser] },
     async (req, res) => {
-      const { success, pending, failed, expectedTotal } = await SnapSaver.isMemoriesJsonAvailable(req.email as string);
+      const { success, pending, failed, expectedTotal } = await SnapSaver.getDownloadStatus(req.email as string);
       const user = await prisma.user.findUnique({ where: { email: req.email } });
 
       await res.send({

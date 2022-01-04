@@ -26,7 +26,7 @@
     "fastify-multipart": "^5.2.1",
     "fastify-oauth2": "^4.4.0",
     "fastify-secure-session": "^3.0.0",
-    "googleapis": "39",
+    "googleapis": "^92.0.0",
     "p-limit": "3.1.0",
     "prisma": "^3.7.0",
     "request": "^2.88.2",

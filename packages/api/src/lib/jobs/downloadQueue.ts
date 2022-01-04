@@ -41,7 +41,7 @@ downloadQueue.on("completed", async (job, result) => {
   }
 });
 
-downloadQueue.on("failed", (job, err) => {
+downloadQueue.on("failed", async (job, err) => {
   log.success(`[${JOB_NAME}] job ${job.id} failed with error - ${err.message}`);
 
   // TODO: Update DB
