@@ -16,7 +16,7 @@ const limit = pLimit(10);
 interface ISnapSaver {
   Memories: any;
   StorageGoogleDrive: any;
-  downloadMemories: (
+  downloadMemoriesFromJson: (
     email: string,
     startDate: string,
     endDate: string,
@@ -25,12 +25,6 @@ interface ISnapSaver {
     callback: Function
   ) => void;
   validateMemoriesJson: (json: any) => boolean;
-  getDownloadStatus: (email: string) => Promise<{
-    pending: number;
-    success: number;
-    failed: number;
-    expectedTotal: number | null;
-  }>;
   processMemoriesJsonInParallel: (
     email: string,
     startDate: string,
@@ -42,8 +36,11 @@ interface ISnapSaver {
 }
 
 type MemoryRequest = {
-  id: number;
   email: string;
+  date: Date;
+  type: string;
+  status: string;
+  snapchatLink: string;
   downloadLink: string;
   fileName: string;
 };
@@ -57,111 +54,187 @@ class SnapSaver implements ISnapSaver {
     this.StorageGoogleDrive = new storageGoogleDrive();
   }
 
+  public downloadMemoriesFromJson = async (
+    email: string,
+    startDate: string,
+    endDate: string,
+    type: string = "ALL",
+    googleAccessToken: string,
+    jobDoneCallback: Function
+  ) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        log.error(
+          `Failed to process memories JSON, user not found - ${email}`
+        );
+        jobDoneCallback(null, { email, message: "user not found" });
+        return
+      }
+
+      const googleFileId = user.memoriesFileId;
+      const googleFolderId = user.memoriesFolderId;
+
+      if (!googleFileId || !googleFolderId) {
+        jobDoneCallback(null, { email, message: "missing google file id or folder id" });
+        return
+      }
+
+      await prisma.user.update({
+        where: { email: email },
+        data: { activeDownload: true },
+      });
+
+      const json = await this.StorageGoogleDrive.getFileById(
+        googleAccessToken,
+        googleFileId
+      );
+      const memories = json["Saved Media"] as any[];
+
+      // If dev env vars are defined, process a smaller chunk of memories
+      const memoriesToProcess = process.env.DEV_FILE_LIMIT
+        ? memories.slice(0, process.env.DEV_FILE_LIMIT as unknown as number)
+        : memories;
+
+      await prisma.user.update({
+        where: { email },
+        data: { memoriesTotal: memoriesToProcess.length },
+      });
+
+      // Wait for all downloads to be resolved
+      let promises = memoriesToProcess.map((memory: any) => {
+        // Applies concurrency limit
+        return limit(async () => {
+          const memoryRequest = await this.getMemoryObjectToSave(email, memory);
+
+          if (memoryRequest.status == Status.PENDING) {
+            await this.requestAsync(
+              memoryRequest,
+              googleFolderId,
+              googleAccessToken
+            );
+          } else if (memoryRequest.status == Status.FAILED) {
+            await this.Memories.incrementMemoryStatusOnUser(email, memoryRequest.status);
+          }
+        });
+      });
+
+      await Promise.all(promises);
+      jobDoneCallback(null, { email, message: "done" });
+    } catch (err) {
+      await prisma.user.update({
+        where: { email: email },
+        data: { activeDownload: false },
+      });
+      jobDoneCallback(err);
+    }
+  };
+
   /**
    * Downloads (in parallel) all memories that are PENDING download from Snapchat and saves them to S3
    *
    * TODO: Add meta data to image/video so it can be filtered by date in file managers
    * TODO: Resuming downloads if failed midway
    */
-  public downloadMemories = async (
-    email: string,
-    startDate: string,
-    endDate: string,
-    type: string = "ALL",
-    googleDriveAccessToken: string,
-    jobDoneCallback: Function
-  ) => {
-    try {
-      await prisma.user.update({
-        where: { email: email },
-        data: { activeDownload: true },
-      });
+  // public downloadMemories = async (
+  //   email: string,
+  //   startDate: string,
+  //   endDate: string,
+  //   type: string = "ALL",
+  //   googleDriveAccessToken: string,
+  //   jobDoneCallback: Function
+  // ) => {
+  //   try {
+  //     await prisma.user.update({
+  //       where: { email: email },
+  //       data: { activeDownload: true },
+  //     });
 
-      const filteredMemories = await this.Memories.filterMemories(
-        email,
-        startDate,
-        endDate,
-        type !== "ALL" && type
-      );
+  //     const filteredMemories = await this.Memories.filterMemories(
+  //       email,
+  //       startDate,
+  //       endDate,
+  //       type !== "ALL" && type
+  //     );
 
-      if (!filteredMemories.length) {
-        log.info(`No memories to download - ${email}`);
-        jobDoneCallback(null, { email, message: "done" });
-        return;
-      }
+  //     if (!filteredMemories.length) {
+  //       log.info(`No memories to download - ${email}`);
+  //       jobDoneCallback(null, { email, message: "done" });
+  //       return;
+  //     }
 
-      const memoryRequests: object[] = filteredMemories.map(
-        (memory: Memory): MemoryRequest => {
-          return {
-            id: memory.id,
-            email: memory.email,
-            fileName: this.getMediaFileName(memory.date, memory.type),
-            downloadLink: memory.downloadLink,
-          };
-        }
-      );
+  //     const memoryRequests: object[] = filteredMemories.map(
+  //       (memory: Memory): MemoryRequest => {
+  //         return {
+  //           id: memory.id,
+  //           email: memory.email,
+  //           fileName: this.getMediaFileName(memory.date, memory.type),
+  //           downloadLink: memory.downloadLink,
+  //         };
+  //       }
+  //     );
 
-      let googleFolderId = "";
-      try {
-        googleFolderId = await this.StorageGoogleDrive.getTargetFolderId(
-          googleDriveAccessToken
-        );
-      } catch (err) {
-        log.error(`Error getting target Google Drive folder - ${email}`, err);
-        jobDoneCallback(err);
-        return;
-      }
+  //     let googleFolderId = "";
+  //     try {
+  //       googleFolderId = await this.StorageGoogleDrive.getTargetFolderId(
+  //         googleDriveAccessToken
+  //       );
+  //     } catch (err) {
+  //       log.error(`Error getting target Google Drive folder - ${email}`, err);
+  //       jobDoneCallback(err);
+  //       return;
+  //     }
 
-      // Wait for all downloads to be resolved
-      let promises = memoryRequests.map((memoryRequest: any) => {
-        // Applies concurrency limit
-        return limit(async () =>
-          this.requestAsync(
-            memoryRequest,
-            googleFolderId,
-            googleDriveAccessToken
-          )
-        );
-      });
+  //     // Wait for all downloads to be resolved
+  //     let promises = memoryRequests.map((memoryRequest: any) => {
+  //       // Applies concurrency limit
+  //       return limit(async () =>
+  //         this.requestAsync(
+  //           memoryRequest,
+  //           googleFolderId,
+  //           googleDriveAccessToken
+  //         )
+  //       );
+  //     });
 
-      await Promise.all(promises);
-      jobDoneCallback(null, { email, message: "done" });
-    } catch (err) {
-      log.error(`Error downloading memories - ${email}`, err);
-      jobDoneCallback(err);
-    }
+  //     await Promise.all(promises);
+  //     jobDoneCallback(null, { email, message: "done" });
+  //   } catch (err) {
+  //     log.error(`Error downloading memories - ${email}`, err);
+  //     jobDoneCallback(err);
+  //   }
 
-    return memories;
-  };
+  //   return memories;
+  // };
 
-  /**
-   * Returns whether memories_history.json exists for user
-   */
-  public getDownloadStatus = async (
-    email: string
-  ): Promise<{
-    pending: number;
-    success: number;
-    failed: number;
-    expectedTotal: number | null;
-  }> => {
-    const user = await this.Memories.getUser(email);
-    const memories = await this.Memories.getAllMemories(email);
+  // /**
+  //  * Returns whether memories_history.json exists for user
+  //  */
+  // public getDownloadStatus = async (
+  //   email: string
+  // ): Promise<{
+  //   pending: number;
+  //   success: number;
+  //   failed: number;
+  //   expectedTotal: number | null;
+  // }> => {
+  //   const user = await this.Memories.getUser(email);
+  //   const memories = await this.Memories.getAllMemories(email);
 
-    return {
-      // ready: await this.StorageS3.objectExistsInS3(fileKey),
-      pending: memories.filter(
-        (memory: Memory) => memory.status == Status.PENDING
-      ).length,
-      success: memories.filter(
-        (memory: Memory) => memory.status == Status.SUCCESS
-      ).length,
-      failed: memories.filter(
-        (memory: Memory) => memory.status == Status.FAILED
-      ).length,
-      expectedTotal: user ? user.numMemories : null,
-    };
-  };
+  //   return {
+  //     // ready: await this.StorageS3.objectExistsInS3(fileKey),
+  //     pending: memories.filter(
+  //       (memory: Memory) => memory.status == Status.PENDING
+  //     ).length,
+  //     success: memories.filter(
+  //       (memory: Memory) => memory.status == Status.SUCCESS
+  //     ).length,
+  //     failed: memories.filter(
+  //       (memory: Memory) => memory.status == Status.FAILED
+  //     ).length,
+  //     expectedTotal: user ? user.numMemories : null,
+  //   };
+  // };
 
   /**
    * Checks if provided object matches the schema of a valid memories_history.json file
@@ -285,13 +358,16 @@ class SnapSaver implements ISnapSaver {
       download["status"] = Status.FAILED;
     }
 
+    const date = new Date(memory["Date"]);
+    const type = memory["Media Type"];
     return {
       email,
-      date: new Date(memory["Date"]),
-      type: memory["Media Type"],
+      date,
+      type,
       snapchatLink,
       downloadLink: download["downloadLink"],
       status: download["status"],
+      fileName: this.getMediaFileName(date, type),
     };
   };
 
@@ -315,11 +391,11 @@ class SnapSaver implements ISnapSaver {
    */
   private requestAsync = (
     memoryRequest: MemoryRequest,
-    googleFolderId?: string,
-    googleDriveAccessToken?: string
+    googleFolderId: string,
+    googleDriveAccessToken: string
   ) => {
     return new Promise((resolve, reject) => {
-      const { id, email, downloadLink, fileName } = memoryRequest;
+      const { email, downloadLink, fileName } = memoryRequest;
       axios({
         method: "get",
         url: downloadLink,
@@ -330,16 +406,17 @@ class SnapSaver implements ISnapSaver {
           // Upload to GDrive
           await this.StorageGoogleDrive.uploadMediaFile(
             googleDriveAccessToken,
+            email,
             googleFolderId,
             fileName,
-            res.data,
-            memoryRequest.id
+            res.data
           );
 
           // log.success(`Successfully downloaded ${fileName}`);
           resolve("done");
         } catch (err) {
-          log.error(`Error while downloading ${fileName}: ${err}`);
+          log.error(`Error while downloading ${fileName} for ${email}: ${err}`);
+          await this.Memories.incrementMemoryStatusOnUser(email, "FAILED");
           reject(err);
         }
       });

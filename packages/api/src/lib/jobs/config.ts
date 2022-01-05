@@ -5,4 +5,11 @@ export const jobQueueOptions = {
     port: Number(process.env.REDIS_PORT),
     password: process.env.REDIS_PASSWORD,
   },
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: 10 // Keep last 10 failed jobs
+  },
+  settings: {
+    stalledInterval: 0, // Don't check for stalled jobs (adding b/c our jobs can take >30 min)
+  }
 };

@@ -3,6 +3,7 @@ import * as log from "../log";
 import { API_URL } from "../constants";
 import memories from "../memories";
 import dayjs from "dayjs";
+import { Status } from "@prisma/client";
 
 class StorageGoogleDrive {
   Memories: any;
@@ -11,18 +12,19 @@ class StorageGoogleDrive {
     this.Memories = new memories();
   }
 
-  public uploadMemoriesJson = async (accessToken: string, data: any) => {
+  public uploadMemoriesJson = async (accessToken: string, email: string, data: any) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
       const folderId = await this.getOrCreateSnapsaverFolderId(drive);
       return await this.createFileInFolder(
         drive,
+        email,
         folderId,
         "memories_history.json",
         data,
         "application/json"
       )
-        .then((fileId) => fileId)
+        .then((fileId) => [fileId, folderId])
         .catch((err) => {
           throw Error(err);
         });
@@ -33,10 +35,10 @@ class StorageGoogleDrive {
 
   public uploadMediaFile = async (
     accessToken: string,
+    email,
     folderId: string,
     fileName: string,
-    stream: any,
-    memoryId?: number
+    stream: any
   ) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
@@ -44,11 +46,11 @@ class StorageGoogleDrive {
       const mimeType = fileExtension == "mp4" ? "video/mp4" : "image/jpeg";
       await this.createFileInFolder(
         drive,
+        email,
         folderId,
         fileName,
         stream,
-        mimeType,
-        memoryId
+        mimeType
       );
     } catch (err) {
       log.error(err);
@@ -66,6 +68,14 @@ class StorageGoogleDrive {
     var request = await drive.files.get({
       'fileId': fileId,
       'alt': 'media'
+    });
+    return request.data;
+  }
+
+  public getFolderById = async (accessToken, folderId) => {
+    const drive = this.getGoogleDrive(accessToken);
+    var request = await drive.files.get({
+      'fileId': folderId,
     });
     return request.data;
   }
@@ -133,11 +143,11 @@ class StorageGoogleDrive {
 
   private createFileInFolder = (
     drive,
+    email,
     folderId,
     name,
     data,
-    mimeType: "application/json" | "image/jpeg" | "video/mp4",
-    memoryId?: number
+    mimeType: "application/json" | "image/jpeg" | "video/mp4"
   ) => {
     const fileMetadata = {
       name,
@@ -156,16 +166,26 @@ class StorageGoogleDrive {
           media: media,
           fields: "id",
         })
-        .then((file) => {
+        .then(async (file) => {
           // TODO: Mark as success on DB
-          log.success(`Created file ${name}`);
+          log.success(`Created file ${name} - ${email}`);
+
+          if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
+            await this.Memories.incrementMemoryStatusOnUser(email, Status.SUCCESS);
+          }
+
           resolve(file.data.id);
         })
-        .catch((err) => {
+        .catch(async (err) => {
           log.error(
             `Error creating file ${name} to GDrive: `,
             err.errors[0].message
           );
+
+          if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
+            await this.Memories.incrementMemoryStatusOnUser(email, Status.FAILED);
+          }
+
           reject(err.errors[0].message);
         });
     });

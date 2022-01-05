@@ -157,6 +157,18 @@ class Memories implements Memories {
       },
     });
   };
+
+  public incrementMemoryStatusOnUser = async (email, status: Status ) => {
+    const data = {
+      ...status == Status.FAILED && { memoriesFailed: { increment: 1 } },
+      ...status == Status.SUCCESS && { memoriesSuccess: { increment: 1} }
+    }
+
+    await prisma.user.update({
+      where: { email },
+      data,
+    });
+  }
 }
 
 export default Memories;
