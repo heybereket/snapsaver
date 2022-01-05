@@ -135,13 +135,14 @@ export const LoggedInScreen = () => {
             {!activeDownload ? "Start Download" : "Downloading..."}
           </button>
         </div>
-        {errorMessage && (
-          // <div className="flex items-center justify-center">
+        {errorMessage ? (
           <div className="flex items-center justify-center mt-5">
-            <span className="w-[410px] text-red-500 text-center">{errorMessage}</span>
+            <span className="w-[410px] text-red-500 text-center">
+              {errorMessage}
+            </span>
           </div>
-        )}
-        {memoriesStatus.total && (
+        ) : <div></div>}
+        {memoriesStatus.total ? (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
               {activeDownload ? "Download in progress for" : "Downloaded"}{" "}
@@ -155,10 +156,10 @@ export const LoggedInScreen = () => {
               </span>
             </div>
           </div>
-        )}
+        ) : <div></div>}
       </div>
 
-      {memoriesStatus.googleDriveFolderLink && (
+      {memoriesStatus.googleDriveFolderLink && memoriesStatus.total ? (
         <div className="rounded-lg mb-2 flex items-center justify-center">
           <a
             href={memoriesStatus.googleDriveFolderLink}
@@ -169,7 +170,7 @@ export const LoggedInScreen = () => {
             Go to folder -&gt;
           </a>
         </div>
-      )}
+      ) : <div></div>}
 
       <div className="flex items-center justify-center">
         <button
@@ -213,7 +214,7 @@ export const LoggedInScreen = () => {
             <div className="flex mt-2 mb-5">
               <button
                 className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
-                  mediaType === "PHOTO" && "bg-primary text-black"
+                  mediaType === "ALL" && "bg-primary text-black"
                 }`}
                 onClick={() => setMediaType("ALL")}
               >
