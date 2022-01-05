@@ -14,10 +14,10 @@ model User {
   betaUser          Boolean  @default(false)
   memoriesFileId    String?
   memoriesFolderId  String?
-  memoriesPending   Int?
   memoriesSuccess   Int?
   memoriesFailed    Int?
   memoriesTotal     Int?
+  jobId             Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
