@@ -25,18 +25,21 @@ type MemoriesStatus = {
   total: number | null;
   success: number;
   failed: number;
+  activeDownload: boolean;
   googleDriveFolderLink: string;
 };
 
-export const LoggedInScreen = () => {
+export const LoggedInScreen = (props: { data: any }) => {
   const [memoriesStatus, setMemoriesStatus] = useState<MemoriesStatus>({
-    total: 0,
-    googleDriveFolderLink: "",
-    success: 0,
-    failed: 0,
+    success: props.data.user?.memoriesSuccess || 0,
+    failed: props.data.user?.memoriesFailed || 0,
+    total: props.data.user?.memoriesTotal || 0,
+    activeDownload: props.data.user?.activeDownload || false,
+    googleDriveFolderLink: props.data.user?.memoriesFolderId
+      ? `https://drive.google.com/drive/folders/${props.data.user?.memoriesFolderId}`
+      : "",
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [activeDownload, setActiveDownload] = useState(false);
   const [mediaType, setMediaType] = useState<string>("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -56,7 +59,7 @@ export const LoggedInScreen = () => {
     form.append("endDate", endDate);
     form.append("type", mediaType);
 
-    const resp = await axios
+    await axios
       .post(`${API_URL}/memories/start`, form, {
         withCredentials: true,
         headers: {
@@ -72,31 +75,7 @@ export const LoggedInScreen = () => {
           );
         }
       });
-
-    checkMemoryStatus();
   };
-
-  const checkMemoryStatus = async () => {
-    return await axios
-      .get(`${API_URL}/memories/status`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        setMemoriesStatus(res.data);
-        setActiveDownload(res.data.activeDownload);
-      })
-      .catch((error) => {
-        console.log(error.message);
-      });
-  };
-
-  useEffect(() => {
-    const fetch = async () => {
-      await checkMemoryStatus();
-    };
-
-    fetch();
-  }, []);
 
   return (
     <>
@@ -126,13 +105,13 @@ export const LoggedInScreen = () => {
         >
           <button
             className={`w-[410px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block ${
-              !activeDownload
+              !memoriesStatus.activeDownload
                 ? "hover:bg-green-300 text-black bg-green-500"
                 : "cursor-not-allowed opacity-50"
             }`}
             onClick={ProcessJSONHandler}
           >
-            {!activeDownload ? "Start Download" : "Downloading..."}
+            {!memoriesStatus.activeDownload ? "Start Download" : "Downloading..."}
           </button>
         </div>
         {errorMessage ? (
@@ -141,11 +120,13 @@ export const LoggedInScreen = () => {
               {errorMessage}
             </span>
           </div>
-        ) : <div></div>}
+        ) : (
+          <div></div>
+        )}
         {memoriesStatus.total ? (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
-              {activeDownload ? "Download in progress for" : "Downloaded"}{" "}
+              {memoriesStatus.activeDownload ? "Download in progress for" : "Downloaded"}{" "}
               {memoriesStatus.total} memories 🤩 <br />
               <span className="text-green-500 font-bold">
                 {memoriesStatus.success} succeeded
@@ -156,7 +137,9 @@ export const LoggedInScreen = () => {
               </span>
             </div>
           </div>
-        ) : <div></div>}
+        ) : (
+          <div></div>
+        )}
       </div>
 
       {memoriesStatus.googleDriveFolderLink && memoriesStatus.total ? (
@@ -170,7 +153,9 @@ export const LoggedInScreen = () => {
             Go to folder -&gt;
           </a>
         </div>
-      ) : <div></div>}
+      ) : (
+        <div></div>
+      )}
 
       <div className="flex items-center justify-center">
         <button
