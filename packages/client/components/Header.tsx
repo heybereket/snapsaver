@@ -78,7 +78,7 @@ export const Header = (props: { data: any }) => {
                 !notSignedUpBetaUser && "cursor-not-allowed opacity-50"
               }`}
             >
-              {props.data.user ? "Joined beta" : "Join the beta waitlist"}
+              {notSignedUpBetaUser ? "Join waitlist" : "Joined beta"}
             </button>
           </div>
         </>

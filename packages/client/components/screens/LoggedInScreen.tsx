@@ -22,16 +22,16 @@ const Codeblock = (props: any) => {
 };
 
 type MemoriesStatus = {
-  expectedTotal: number | null;
-  pending: number;
+  total: number | null;
   success: number;
   failed: number;
+  googleDriveFolderLink: string;
 };
 
 export const LoggedInScreen = () => {
   const [memoriesStatus, setMemoriesStatus] = useState<MemoriesStatus>({
-    expectedTotal: 0,
-    pending: 0,
+    total: 0,
+    googleDriveFolderLink: "",
     success: 0,
     failed: 0,
   });
@@ -90,10 +90,8 @@ export const LoggedInScreen = () => {
         withCredentials: true,
       })
       .then((res) => {
-        const { pending, failed, success, expectedTotal, activeDownload } =
-          res.data;
         setMemoriesStatus(res.data);
-        setActiveDownload(activeDownload);
+        setActiveDownload(res.data.activeDownload);
       })
       .catch((error) => {
         console.log(error.message);
@@ -142,41 +140,37 @@ export const LoggedInScreen = () => {
             }`}
             onClick={ProcessJSONHandler}
           >
-            {!activeDownload ? "Save to Drive" : "Downloading..."}
+            {!activeDownload ? "Start Download" : "Downloading..."}
           </button>
         </div>
-        {activeDownload ? (
+        {memoriesStatus.total && (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
-              You have{" "}
+              {activeDownload ? "Download in progress for" : "Downloaded"} {memoriesStatus.total} memories 🤩 <br />
               <span className="text-green-500 font-bold">
-                {memoriesStatus.pending}
+                {memoriesStatus.success} succeeded
               </span>{" "}
-              memories downloading 🤩{" "}
-              {memoriesStatus.failed > 0 && (
-                <>
-                  but
-                  <br />{" "}
-                  <span className="text-red-500 font-bold">
-                    {memoriesStatus.failed}
-                  </span>{" "}
-                  links appear to be broken.
-                </>
-              )}
+              -{" "}
+              <span className="text-red-500 font-bold">
+                {memoriesStatus.failed} failed
+              </span>
             </div>
           </div>
-        ) : memoriesStatus.expectedTotal && memoriesStatus.expectedTotal > 0 ? (
-          <div className="flex items-center justify-center mt-8 mb-10 text-secondary text-xl">
-            Processing memories...{" "}
-            {Object.keys(memoriesStatus).length !== 0 &&
-              `${memoriesStatus.pending + memoriesStatus.failed}/${
-                memoriesStatus.expectedTotal
-              }... refresh to see progress.`}
-          </div>
-        ) : (
-          <div></div>
         )}
       </div>
+
+      {memoriesStatus.googleDriveFolderLink && (
+        <div className="rounded-lg mb-2 flex items-center justify-center">
+          <a
+            href={memoriesStatus.googleDriveFolderLink}
+            target="_blank"
+            rel="noreferrer"
+            className="w-[410px] text-xl px-5 py-3 text-secondary bg-navbar rounded-lg cursor-pointer transition ease-out display-none md:block text-center hover:bg-primary hover:text-black"
+          >
+            Go to folder -&gt;
+          </a>
+        </div>
+      )}
 
       <div className="flex items-center justify-center">
         <button
@@ -218,6 +212,14 @@ export const LoggedInScreen = () => {
             </h3>
             Default type is &quot;ALL&quot;
             <div className="flex mt-2 mb-5">
+              <button
+                className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
+                  mediaType === "PHOTO" && "bg-primary text-black"
+                }`}
+                onClick={() => setMediaType("ALL")}
+              >
+                ALL
+              </button>
               <button
                 className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
                   mediaType === "PHOTO" && "bg-primary text-black"
