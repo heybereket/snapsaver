@@ -214,7 +214,7 @@ export const LoggedInScreen = () => {
             <div className="flex mt-2 mb-5">
               <button
                 className={`px-5 py-3 mr-3 text-secondary bg-dark rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black display-none md:block ${
-                  mediaType === "PHOTO" && "bg-primary text-black"
+                  mediaType === "ALL" && "bg-primary text-black"
                 }`}
                 onClick={() => setMediaType("ALL")}
               >
