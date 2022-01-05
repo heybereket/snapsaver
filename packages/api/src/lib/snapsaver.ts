@@ -65,19 +65,20 @@ class SnapSaver implements ISnapSaver {
     try {
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
-        log.error(
-          `Failed to process memories JSON, user not found - ${email}`
-        );
+        log.error(`Failed to process memories JSON, user not found - ${email}`);
         jobDoneCallback(null, { email, message: "user not found" });
-        return
+        return;
       }
 
       const googleFileId = user.memoriesFileId;
       const googleFolderId = user.memoriesFolderId;
 
       if (!googleFileId || !googleFolderId) {
-        jobDoneCallback(null, { email, message: "missing google file id or folder id" });
-        return
+        jobDoneCallback(null, {
+          email,
+          message: "missing google file id or folder id",
+        });
+        return;
       }
 
       await prisma.user.update({
@@ -96,13 +97,20 @@ class SnapSaver implements ISnapSaver {
         ? memories.slice(0, process.env.DEV_FILE_LIMIT as unknown as number)
         : memories;
 
+      const filteredMemories = this.filterMemories(
+        memoriesToProcess,
+        startDate,
+        endDate,
+        type
+      );
+
       await prisma.user.update({
         where: { email },
-        data: { memoriesTotal: memoriesToProcess.length },
+        data: { memoriesTotal: filteredMemories.length },
       });
 
       // Wait for all downloads to be resolved
-      let promises = memoriesToProcess.map((memory: any) => {
+      let promises = filteredMemories.map((memory: any) => {
         // Applies concurrency limit
         return limit(async () => {
           const memoryRequest = await this.getMemoryObjectToSave(email, memory);
@@ -114,7 +122,10 @@ class SnapSaver implements ISnapSaver {
               googleAccessToken
             );
           } else if (memoryRequest.status == Status.FAILED) {
-            await this.Memories.incrementMemoryStatusOnUser(email, memoryRequest.status);
+            await this.Memories.incrementMemoryStatusOnUser(
+              email,
+              memoryRequest.status
+            );
           }
         });
       });
@@ -128,6 +139,19 @@ class SnapSaver implements ISnapSaver {
       });
       jobDoneCallback(err);
     }
+  };
+
+  public filterMemories = (memories, startDate, endDate, type) => {
+    return memories.filter(
+      (memory: any) =>
+        (type == "ALL" || memory["Media Type"] == type) &&
+        (!startDate ||
+          new Date(memory["Date"]).setHours(0, 0, 0) >=
+            new Date(startDate).setHours(0, 0, 0, 0)) &&
+        (!endDate ||
+          new Date(memory["Date"]).setHours(0, 0, 0, 0) <=
+            new Date(endDate).setHours(0, 0, 0, 0))
+    );
   };
 
   /**

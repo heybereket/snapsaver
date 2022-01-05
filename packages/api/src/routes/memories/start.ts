@@ -14,8 +14,18 @@ const Snapsaver = new ss();
 const StorageGoogleDrive = new storageGoogleDrive();
 
 const memoriesJsonSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z
+    .string()
+    .refine((date) => util.isValidDate(date), {
+      message: "startDate must be in yyyy-mm-dd format"
+    })
+    .optional(),
+  endDate: z
+    .string()
+    .refine((date) => util.isValidDate(date), {
+      message: "endDate bust be in yyyy-mm-dd format"
+    })
+    .optional(),
   type: z.enum(["ALL", "PHOTO", "VIDEO"]).optional(),
 });
 

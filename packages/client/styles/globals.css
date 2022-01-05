@@ -1,44 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root {
-	font-size: 14px;
-	--color-primary-100: #dee3ea;
+    font-size: 14px;
+    --color-primary-100: #dee3ea;
 }
 
 html,
 body {
-	padding: 0;
-	margin: 0;
-	font-family: "Inter";
-	color: #fff;
-	font-weight: 400;
-	overflow: overlay;
+    padding: 0;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    color: #fff;
+    font-weight: 400;
+    overflow: overlay;
 }
 
 .loading-logo {
-	animation: blinker 1.5s linear infinite;
-	opacity: 0;
+    animation: blinker 1.5s linear infinite;
+    opacity: 0;
 }
 
 @keyframes blinker {
-	50% {opacity: 1;}
-  }
+    50% {
+        opacity: 1;
+    }
+}
 
 ::file-selector-button {
-	display: none;
+    display: none;
 }
 
 input[type="file"] {
-	display: none;
+    display: none;
 }
 
 ::-webkit-scrollbar {
-	width: 5px;
-
+    width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-	background: transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-	background: transparent;
+    background: transparent;
 }

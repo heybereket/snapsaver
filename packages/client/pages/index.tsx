@@ -36,7 +36,7 @@ const Home: NextPage = () => {
       <>
         <Container className={`md:mt-20`}>
           <Header data={data} />
-          <LoggedInScreen />
+          <LoggedInScreen data={data} />
           <Footer />
         </Container>
       </>
