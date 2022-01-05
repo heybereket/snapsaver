@@ -41,19 +41,22 @@ export const LoggedInScreen = () => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [moreOptions, setMoreOptions] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const JSONHandler = async (e: any) => {
     setUploadedFile(e.target.files?.[0]);
   };
 
   const ProcessJSONHandler = async () => {
+    setErrorMessage("");
+
     const form = new FormData();
     form.append("image", uploadedFile as unknown as string);
     form.append("startDate", startDate);
     form.append("endDate", endDate);
     form.append("type", mediaType);
 
-    await axios
+    const resp = await axios
       .post(`${API_URL}/memories/start`, form, {
         withCredentials: true,
         headers: {
@@ -61,27 +64,16 @@ export const LoggedInScreen = () => {
         },
       })
       .catch((error) => {
-        console.log(error.message);
+        const { message, err } = error.response.data;
+        console.log(`${message}. ${err}`);
+        if (error.response.status == 403) {
+          setErrorMessage(
+            "Your Google Drive is full! Try freeing up some space or logging in with a different account."
+          );
+        }
       });
 
     checkMemoryStatus();
-  };
-
-  const DownloadHandler = async () => {
-    return await axios
-      .post(
-        `${API_URL}/memories/download`,
-        { type: mediaType, startDate, endDate },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      )
-      .catch((error) => {
-        console.log(error.message);
-      });
   };
 
   const checkMemoryStatus = async () => {
@@ -143,10 +135,17 @@ export const LoggedInScreen = () => {
             {!activeDownload ? "Start Download" : "Downloading..."}
           </button>
         </div>
+        {errorMessage && (
+          // <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center mt-5">
+            <span className="w-[410px] text-red-500 text-center">{errorMessage}</span>
+          </div>
+        )}
         {memoriesStatus.total && (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
-              {activeDownload ? "Download in progress for" : "Downloaded"} {memoriesStatus.total} memories 🤩 <br />
+              {activeDownload ? "Download in progress for" : "Downloaded"}{" "}
+              {memoriesStatus.total} memories 🤩 <br />
               <span className="text-green-500 font-bold">
                 {memoriesStatus.success} succeeded
               </span>{" "}
