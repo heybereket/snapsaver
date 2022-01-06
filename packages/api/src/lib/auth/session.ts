@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CLIENT_URL, COOKIE_NAME, IS_PRODUCTION } from "../constants";
+import { COOKIE_NAME } from "../constants";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "../connections/prisma";
 
