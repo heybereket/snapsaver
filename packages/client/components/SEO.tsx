@@ -18,9 +18,11 @@ export const SEO: React.FC<SEOProps> = ({
   metaTitle,
   keywords,
 }) => {
+  const properTitle = title === "Snapsaver" ? title : `${title} - Snapsaver`;
+
   return (
     <Head>
-      <title>{title} - Snapsaver</title>
+      <title>{properTitle}</title>
       <meta
         name="viewport"
         content="width=device-width, initial-scale=1, user-scalable=no, user-scalable=0"
@@ -33,14 +35,14 @@ export const SEO: React.FC<SEOProps> = ({
       {metaTitle ? (
         <meta name="og:title" content={metaTitle} />
       ) : (
-        <meta name="og:title" content={title} />
+        <meta name="og:title" content={properTitle} />
       )}
       <meta
         name="og:description"
         content="Backup your Snapchat Memories to Google Drive"
       />
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
+      <meta name="twitter:title" content={properTitle} />
       <meta
         name="twitter:description"
         content="Backup your Snapchat Memories to Google Drive"

@@ -12,13 +12,16 @@ const About = () => {
 
   if (isLoading || isError)
     return (
-      <div className="loading-logo">
-        <Container
-          className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
-        >
-          <LoadingScreen />
-        </Container>
-      </div>
+        <>
+        <SEO title="About" />
+        <div className="loading-logo">
+          <Container
+            className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
+          >
+            <LoadingScreen />
+          </Container>
+        </div>
+      </>
     );
 
   return (

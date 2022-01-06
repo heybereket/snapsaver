@@ -36,14 +36,14 @@ export const paragraphs = [
       "When you sign in, Snapsaver asks for the minimum credentials needed to get the job done:",
       "1. Your email address",
       "2. Access to <b><i>only the files that Snapsaver creates</i></b> in your Google Drive",
-      "After you've signed in, Google provides an access token. When Snapsaver makes requests to Google to save a file to your Drive, it needs to include this access token. If you sign out, this token becomes invalid and Snapsaver cannot do anything with your Google account. To get a new access token, you need to sign in again. This is a security measure to prevent someone from stealing your data. ",
+      "After you've signed in, Google provides an access token. When Snapsaver makes requests to Google to save a file to your Drive, it needs to include this access token. If you sign out, this token becomes invalid and Snapsaver cannot do anything with your Google account.",
       "🔑 Your <b><i>files are as as secure as your Google account</i></b>, so ensure you <b><i>use one that is strongly protected</i></b> and is <b><i>only accessible by you and people you trust</i></b> to see your memories.",
     ],
   },
   {
     title: "What personal information do we collect?",
     sentences: [
-      "Snapsaver collects the email address you login with and the total number of links in your memories_history.JSON. This is so that we can show you the progress of your download.",
+      "Snapsaver collects the email address you login with and the total number of links in your memories_history.json. This is so that we can show you the progress of your download.",
     ],
   },
   {
@@ -51,7 +51,7 @@ export const paragraphs = [
     sentences: [
       "Snapsaver stores your data only on your own Google Drive.",
       "When you upload your memories_history.json, Snapsaver creates a folder on your Google Drive called something like “Snapsaver - 2022/01/05 5:45pm” and saves your JSON file into it. If that works (i.e. you have enough storage), your download request is queued!",
-      "Once your download is being processed, Snapsaver reads directly from that file to process each link and save your media into that same folder on your Google Drive. This is a one-time process, and it's done automatically. If you're not satisfied with the results, you can always delete the folder and re-upload your JSON file.",
+      "Once your download is being processed, Snapsaver reads directly from that file to process each link and save your media into that same folder on your Google Drive.",
       "Outside of your Google Drive, <b><i>Snapsaver doesn't store any information about the contents of your memories_history.json</i></b>.",
     ],
   },
@@ -62,13 +62,16 @@ const PrivacyPage = () => {
 
   if (isLoading || isError)
     return (
-      <div className="loading-logo">
-        <Container
-          className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
-        >
-          <LoadingScreen />
-        </Container>
-      </div>
+      <>
+        <SEO title="Privacy" />
+        <div className="loading-logo">
+          <Container
+            className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
+          >
+            <LoadingScreen />
+          </Container>
+        </div>
+      </>
     );
 
   return (

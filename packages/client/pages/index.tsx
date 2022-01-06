@@ -13,13 +13,16 @@ const Home: NextPage = () => {
 
   if (isLoading || isError)
     return (
-      <div className="loading-logo">
-        <Container
-          className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
-        >
-          <LoadingScreen />
-        </Container>
-      </div>
+      <>
+        <SEO title="Snapsaver" />
+        <div className="loading-logo">
+          <Container
+            className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
+          >
+            <LoadingScreen />
+          </Container>
+        </div>
+      </>
     );
 
   if (data.user && data.success) {
