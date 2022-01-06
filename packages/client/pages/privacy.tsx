@@ -3,6 +3,7 @@ import { Container } from "../components/Container";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { LoadingScreen } from "../components/screens/LoadingScreen";
+import { SEO } from "../components/SEO";
 import { useUser } from "../lib/fetcher";
 
 export const paragraphs = [
@@ -72,6 +73,7 @@ const PrivacyPage = () => {
 
   return (
     <>
+      <SEO title="Privacy" />
       <Container className={`md:mt-20`}>
         <Header data={data} />
         <div className="flex items-center justify-center mt-10 px-7 md:px-12">

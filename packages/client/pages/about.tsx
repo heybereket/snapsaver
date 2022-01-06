@@ -4,6 +4,7 @@ import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { LoadingScreen } from "../components/screens/LoadingScreen";
 import { Tooltip } from "../components/Tooltip";
+import { SEO } from "../components/SEO";
 import { useUser } from "../lib/fetcher";
 
 const About = () => {
@@ -22,13 +23,13 @@ const About = () => {
 
   return (
     <>
+      <SEO title="About" />
+
       <Container className={`md:mt-20`}>
         <Header data={data} />
         <div className="flex flex-col items-center justify-center">
           <div className="px-7 py-5 rounded-lg">
-            <p className="text-center text-4xl font-bold text-primary">
-              About
-            </p>
+            <p className="text-center text-4xl font-bold text-primary">About</p>
 
             <p className="text-lg text-gray-400 md:w-[700px] mt-5 mb-5">
               <div className="mb-3">
@@ -42,7 +43,8 @@ const About = () => {
                   Though Snapchat is legally required to provide you with all
                   the data it&apos;s collected on you, they sure make it hard to
                   work with. Your memories are one of them, but Snapchat has no
-                  way to export all your memory media files at once. Instead, your memories are given as a a list of links in a file called
+                  way to export all your memory media files at once. Instead,
+                  your memories are given as a a list of links in a file called
                   memories_history.json. On top of that - technical jargon aside
                   - these links lead to another link, which is the actual link
                   to download your file. For context, ours had 5,600 links, and
@@ -50,17 +52,17 @@ const About = () => {
                 </span>
               </div>
               <div className="mb-3">
-
-              <span>
-                Snapsaver is simple yet effective. No need to download a few
-                photos at a time on your phone, or worry about how much storage
-                you have. Whether you just want to backup your memories, or get
-                off the app, Snapsaver downloads your memories right onto your
-                Google Drive.
-                </span>
-                </div>
                 <span>
-                If you have any feedback, we&apos;d love to hear from you. ✨ Happy saving ;) ✨
+                  Snapsaver is simple yet effective. No need to download a few
+                  photos at a time on your phone, or worry about how much
+                  storage you have. Whether you just want to backup your
+                  memories, or get off the app, Snapsaver downloads your
+                  memories right onto your Google Drive.
+                </span>
+              </div>
+              <span>
+                If you have any feedback, we&apos;d love to hear from you. ✨
+                Happy saving ;) ✨
               </span>
             </p>
           </div>

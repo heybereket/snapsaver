@@ -37,6 +37,7 @@ const Home: NextPage = () => {
   } else {
     return (
       <>
+        <SEO title="Home" />
         <Container className={`md:mt-20`}>
           <Header data={data} />
           <Instructions />

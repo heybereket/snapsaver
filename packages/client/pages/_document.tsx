@@ -6,6 +6,7 @@ export default class MyDocument extends Document {
     return (
       <Html>
         <Head>
+        <link rel="shortcut icon" href="/assets/snapsaver-logo.png" />
           <link
             href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
             rel="stylesheet"
