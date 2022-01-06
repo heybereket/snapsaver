@@ -1,38 +1,38 @@
 import type { NextPage } from "next";
-import { LoggedInScreen } from "../components/LoggedInScreen";
+import { LoggedInScreen } from "../components/screens/LoggedInScreen";
+import { Container } from "../components/Container";
 import { Header } from "../components/Header";
-import { VideoEmbed } from "../components/VideoEmbed";
 import { Footer } from "../components/Footer";
-import { LandingContent } from "../components/LandingContent";
-import { fetcher, useUser } from "../lib/fetcher";
-import useSWR from "swr";
-import { API_URL } from "../lib/constants";
-
-export const Container = (props: any) => {
-  return (
-    <div
-      {...props}
-      className={`p-4 md:px-6 lg:px-32 xl:px-48 2xl:px-72 3xl:px-128 ${props.className}`}
-    >
-      {props.children}
-    </div>
-  );
-};
+import { Instructions } from "../components/Instructions";
+import { useUser } from "../lib/fetcher";
+import { LoadingScreen } from "../components/screens/LoadingScreen";
+import { SEO } from "../components/SEO";
 
 const Home: NextPage = () => {
-  const { user, isLoading, isError } = useUser();
+  const { data, isLoading, isError } = useUser();
 
-  if (isLoading || isError) return (<>
-  <Container className={`md:mt-20`}>
-  </Container>
-</>)
-
-  if (user) {
+  if (isLoading || isError)
     return (
       <>
+        <SEO title="Snapsaver" />
+        <div className="loading-logo">
+          <Container
+            className={`m-w-5 md:flex md:items-center md:justify-center md:h-screen`}
+          >
+            <LoadingScreen />
+          </Container>
+        </div>
+      </>
+    );
+
+  if (data.user && data.success) {
+    return (
+      <>
+        <SEO title="Home" />
         <Container className={`md:mt-20`}>
-          <Header user={user}/>
-          <LoggedInScreen />
+          <Header data={data} />
+          <LoggedInScreen data={data} />
+          <Instructions />
           <Footer />
         </Container>
       </>
@@ -40,9 +40,10 @@ const Home: NextPage = () => {
   } else {
     return (
       <>
+        <SEO title="Home" />
         <Container className={`md:mt-20`}>
-          <Header user={user}/>
-          <LandingContent />
+          <Header data={data} />
+          <Instructions />
           <Footer />
         </Container>
       </>

@@ -1,21 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root {
-	font-size: 14px;
-	--color-primary-100: #dee3ea;
+    font-size: 14px;
+    --color-primary-100: #dee3ea;
 }
 
 html,
 body {
-	padding: 0;
-	margin: 0;
-	font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu,
-		Cantarell, 'Helvetica Neue', sans-serif;
-  color: #fff;
-  font-weight: 400;
+    padding: 0;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    color: #fff;
+    font-weight: 400;
+    overflow: overlay;
+}
+
+.loading-logo {
+    animation: blinker 1.5s linear infinite;
+    opacity: 0;
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 1;
+    }
 }
 
 ::file-selector-button {
-  display: none;
+    display: none;
 }
-  input[type="file"] {
-	display: none;
-  }
+
+input[type="file"] {
+    display: none;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent;
+}

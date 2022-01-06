@@ -1,3 +1,4 @@
+import { prisma } from "../../../lib/connections/prisma";
 import dayjs from "dayjs";
 import { FastifyInstance } from "fastify";
 import { CLIENT_URL, COOKIE_NAME, IS_PRODUCTION } from "../../../lib/constants";

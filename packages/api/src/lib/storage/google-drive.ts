@@ -1,8 +1,9 @@
 import { google } from "googleapis";
 import * as log from "../log";
 import { API_URL } from "../constants";
-import { resolve } from "path/posix";
 import memories from "../memories";
+import dayjs from "dayjs";
+import { Status } from "@prisma/client";
 
 class StorageGoogleDrive {
   Memories: any;
@@ -11,33 +12,33 @@ class StorageGoogleDrive {
     this.Memories = new memories();
   }
 
-  public uploadMemoriesJson = async (accessToken: string, data: any) => {
+  public uploadMemoriesJson = async (accessToken: string, email: string, data: any) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
       const folderId = await this.getOrCreateSnapsaverFolderId(drive);
-      log.info("Target GDrive folder id: ", folderId);
-
-      this.createFileInFolder(
+      return await this.createFileInFolder(
         drive,
+        email,
         folderId,
         "memories_history.json",
         data,
         "application/json"
-      );
+      )
+        .then((fileId) => [fileId, folderId])
+        .catch((err) => {
+          throw Error(err);
+        });
     } catch (err) {
-      log.error(
-        `Error uploading memories JSON to GDrive`,
-        err.errors.first().message
-      );
+      throw Error(err);
     }
   };
 
   public uploadMediaFile = async (
     accessToken: string,
+    email,
     folderId: string,
     fileName: string,
-    stream: any,
-    memoryId?: number
+    stream: any
   ) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
@@ -45,11 +46,11 @@ class StorageGoogleDrive {
       const mimeType = fileExtension == "mp4" ? "video/mp4" : "image/jpeg";
       await this.createFileInFolder(
         drive,
+        email,
         folderId,
         fileName,
         stream,
-        mimeType,
-        memoryId
+        mimeType
       );
     } catch (err) {
       log.error(err);
@@ -62,8 +63,26 @@ class StorageGoogleDrive {
     return folderId;
   };
 
+  public getFileById = async (accessToken, fileId) => {
+    const drive = this.getGoogleDrive(accessToken);
+    var request = await drive.files.get({
+      'fileId': fileId,
+      'alt': 'media'
+    });
+    return request.data;
+  }
+
+  public getFolderById = async (accessToken, folderId) => {
+    const drive = this.getGoogleDrive(accessToken);
+    var request = await drive.files.get({
+      'fileId': folderId,
+    });
+    return request.data;
+  }
+
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
-    const folderName = "Snapsaver";
+    const currentDateFormatted = dayjs().format("YYYY/MM/DD h:mma");
+    const folderName = `Snapsaver ${currentDateFormatted}`;
     const existingFolders: any[] = await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(
       (f) => f.name === folderName
@@ -115,7 +134,7 @@ class StorageGoogleDrive {
             reject(err);
           }
 
-          console.log(`Created folder ${name}. Id: ${file.data.id}`);
+          log.success(`Created folder ${name}. Id: ${file.data.id}`);
           resolve(file.data.id);
         }
       );
@@ -124,11 +143,11 @@ class StorageGoogleDrive {
 
   private createFileInFolder = (
     drive,
+    email,
     folderId,
     name,
     data,
-    mimeType: "application/json" | "image/jpeg" | "video/mp4",
-    memoryId?: number
+    mimeType: "application/json" | "image/jpeg" | "video/mp4"
   ) => {
     const fileMetadata = {
       name,
@@ -141,29 +160,34 @@ class StorageGoogleDrive {
     };
 
     return new Promise((resolve, reject) => {
-      drive.files.create(
-        {
+      drive.files
+        .create({
           resource: fileMetadata,
           media: media,
           fields: "id",
-        },
-        async (err, file) => {
-          if (err) {
-            log.error(
-              `Error creating file ${name} to GDrive: `,
-              err.errors[0].message
-            );
-            reject(err);
-          } else {
-            log.success("Created file, id: ", file.data.id);
-            // TODO: Test if this part is working, seems not in sync with file actually saving to GDrive
-            // if (memoryId) {
-            //   await this.Memories.updateMemoryStatusSuccess(memoryId);
-            // }
-            resolve(file.data.id);
+        })
+        .then(async (file) => {
+          // TODO: Mark as success on DB
+          log.success(`Created file ${name} - ${email}`);
+
+          if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
+            await this.Memories.incrementMemoryStatusOnUser(email, Status.SUCCESS);
           }
-        }
-      );
+
+          resolve(file.data.id);
+        })
+        .catch(async (err) => {
+          log.error(
+            `Error creating file ${name} to GDrive: `,
+            err.errors[0].message
+          );
+
+          if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
+            await this.Memories.incrementMemoryStatusOnUser(email, Status.FAILED);
+          }
+
+          reject(err.errors[0].message);
+        });
     });
   };
 

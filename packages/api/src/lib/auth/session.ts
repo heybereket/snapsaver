@@ -1,6 +1,7 @@
 import axios from "axios";
-import { COOKIE_NAME } from "../constants";
+import { CLIENT_URL, COOKIE_NAME, IS_PRODUCTION } from "../constants";
 import { FastifyReply, FastifyRequest } from "fastify";
+import { prisma } from "../connections/prisma";
 
 export const authenticateUser = async (
   req: FastifyRequest,
@@ -24,18 +25,15 @@ export const authenticateUser = async (
       })
       .then((res) => res.data);
 
+    const user = await prisma.user.findUnique({
+      where: {
+        email: googleUserInfo.email,
+      },
+    });
+
     req.email = googleUserInfo.email;
     req.googleAccessToken = token;
-
-    // if (
-    //   BetaAllowedUsers.ENABLED &&
-    //   !BetaAllowedUsers.EMAILS.includes(req.email as string)
-    // ) {
-    //   res.send({
-    //     success: false,
-    //     message: `You aren't allowed to use Snapsaver...yet`,
-    //   });
-    // }
+    req.isBeta = (user && user?.betaUser) as boolean;
 
     return googleUserInfo;
   } catch (err) {

@@ -136,6 +136,39 @@ class Memories implements Memories {
       log.error(err);
     }
   };
+
+  public filterMemories = async (
+    email: string,
+    startDate: Date,
+    endDate: Date,
+    type: Type
+  ) => {
+    return await prisma.memory.findMany({
+      where: {
+        email,
+        status: Status.PENDING,
+        ...((startDate || endDate) && {
+          date: {
+            ...startDate && { gte: new Date(startDate) },
+            ...endDate && { lte: new Date(endDate) },
+          },
+        }),
+        ...(type && { type }),
+      },
+    });
+  };
+
+  public incrementMemoryStatusOnUser = async (email, status: Status ) => {
+    const data = {
+      ...status == Status.FAILED && { memoriesFailed: { increment: 1 } },
+      ...status == Status.SUCCESS && { memoriesSuccess: { increment: 1} }
+    }
+
+    await prisma.user.update({
+      where: { email },
+      data,
+    });
+  }
 }
 
 export default Memories;
