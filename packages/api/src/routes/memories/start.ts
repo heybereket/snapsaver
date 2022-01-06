@@ -15,17 +15,15 @@ const StorageGoogleDrive = new storageGoogleDrive();
 
 const memoriesJsonSchema = z.object({
   startDate: z
-    .string()
-    .refine((date) => util.isValidDate(date), {
+    .string().optional()
+    .refine((date) => date ? util.isValidDate(date) : true, {
       message: "startDate must be in yyyy-mm-dd format"
-    })
-    .optional(),
+    }),
   endDate: z
-    .string()
-    .refine((date) => util.isValidDate(date), {
+    .string().optional()
+    .refine((date) => date ? util.isValidDate(date) : true, {
       message: "endDate bust be in yyyy-mm-dd format"
-    })
-    .optional(),
+    }),
   type: z.enum(["ALL", "PHOTO", "VIDEO"]).optional(),
 });
 

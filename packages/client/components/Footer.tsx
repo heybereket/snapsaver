@@ -2,8 +2,8 @@ import { Link } from "./Link";
 
 export const Footer = () => {
   return (
-    <div className="px-4 py-2 mt-5 rounded-lg flex flex-col md:flex-row items-center justify-center text-center">
-      <div>
+    <div className="px-4 py-2 mt-10 rounded-lg flex flex-col md:flex-row items-center justify-center text-center">
+      <div className="text-gray-400">
         made by{" "}
         <Link url="https://twitter.com/heybereket" content="@heybereket" /> and{" "}
         <Link url="https://twitter.com/addissemagn" content="@addissemagn" />

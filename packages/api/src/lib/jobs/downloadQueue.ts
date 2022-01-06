@@ -15,7 +15,7 @@ export const downloadMemoriesJob = (data) => {
 };
 
 downloadQueue.process((job, done) => {
-  log.event(`[${JOB_NAME}] job ${job.id} processing - ${job.data.email}`);
+  log.event(`[${JOB_NAME}] job ${job.id} PROCESSING - ${job.data.email}`);
 
   // TODO: Handle errors, i.e. file expired, storage exceeded etc.
   SnapSaver.downloadMemoriesFromJson(
@@ -43,7 +43,7 @@ downloadQueue.on("stalled", async (job) => {
   log.success(`[${JOB_NAME}] job ${job.id} STALLED`);
 });
 
-downloadQueue.on("stalled", async (job) => {
+downloadQueue.on("paused", async (job) => {
   log.warn(`[${JOB_NAME}] job ${job.id} is PAUSED`);
 });
 

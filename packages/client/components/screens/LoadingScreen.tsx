@@ -1,4 +1,3 @@
-import { Container } from "../../pages";
 import Image from "next/image";
 
 export const LoadingScreen = () => {

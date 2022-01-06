@@ -103,6 +103,7 @@ class SnapSaver implements ISnapSaver {
         endDate,
         type
       );
+      console.log(filteredMemories.length);
 
       await prisma.user.update({
         where: { email },
@@ -142,16 +143,16 @@ class SnapSaver implements ISnapSaver {
   };
 
   public filterMemories = (memories, startDate, endDate, type) => {
-    return memories.filter(
-      (memory: any) =>
-        (type == "ALL" || memory["Media Type"] == type) &&
-        (!startDate ||
-          new Date(memory["Date"]).setHours(0, 0, 0) >=
-            new Date(startDate).setHours(0, 0, 0, 0)) &&
-        (!endDate ||
-          new Date(memory["Date"]).setHours(0, 0, 0, 0) <=
-            new Date(endDate).setHours(0, 0, 0, 0))
-    );
+    console.log(startDate, endDate, type)
+    return memories.filter((memory: any) => {
+      const date = new Date(memory["Date"]).setUTCHours(0,0,0,0);
+      const isInRange =
+        !startDate ||
+        !endDate ||
+        (date >= new Date(startDate).setUTCHours(0,0,0,0) && date <= new Date(endDate).setUTCHours(23,59,59,999));
+      const isType = type === "ALL" || memory["Media Type"] === type;
+      return isInRange && isType;
+    });
   };
 
   /**

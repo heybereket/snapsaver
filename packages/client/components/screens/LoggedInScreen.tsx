@@ -1,21 +1,8 @@
 import type { NextPage } from "next";
 import Image from "next/image";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { API_URL } from "../../lib/constants";
-import { LandingContent } from "../LandingContent";
-import { VideoEmbed } from "../VideoEmbed";
-
-export const Container = (props: any) => {
-  return (
-    <div
-      {...props}
-      className={`p-4 md:px-6 lg:px-32 xl:px-48 2xl:px-72 3xl:px-128 ${props.className}`}
-    >
-      {props.children}
-    </div>
-  );
-};
 
 const Codeblock = (props: any) => {
   return <code className="font-monospace text-primary">{props.content}</code>;
@@ -66,6 +53,7 @@ export const LoggedInScreen = (props: { data: any }) => {
           "Content-Type": `multipart/form-data`,
         },
       })
+      .then((res) => window.location.reload())
       .catch((error) => {
         const { message, err } = error.response.data;
         console.log(`${message}. ${err}`);
@@ -111,7 +99,9 @@ export const LoggedInScreen = (props: { data: any }) => {
             }`}
             onClick={ProcessJSONHandler}
           >
-            {!memoriesStatus.activeDownload ? "Start Download" : "Downloading..."}
+            {!memoriesStatus.activeDownload
+              ? "Start Download"
+              : "Downloading..."}
           </button>
         </div>
         {errorMessage ? (
@@ -126,8 +116,10 @@ export const LoggedInScreen = (props: { data: any }) => {
         {memoriesStatus.total ? (
           <div className="flex items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
-              {memoriesStatus.activeDownload ? "Download in progress for" : "Downloaded"}{" "}
-              {memoriesStatus.total} memories 🤩 <br />
+              {memoriesStatus.activeDownload ? "Downloading" : "Downloaded"}{" "}
+              {memoriesStatus.total} memories 🤩{" "}
+              {memoriesStatus.activeDownload && "Refresh to see progress!"}
+              <br />
               <span className="text-green-500 font-bold">
                 {memoriesStatus.success} succeeded
               </span>{" "}
@@ -225,8 +217,6 @@ export const LoggedInScreen = (props: { data: any }) => {
           </div>
         </div>
       )}
-
-      <LandingContent />
     </>
   );
 };
