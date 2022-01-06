@@ -6,6 +6,7 @@ import { Footer } from "../components/Footer";
 import { Instructions } from "../components/Instructions";
 import { useUser } from "../lib/fetcher";
 import { LoadingScreen } from "../components/screens/LoadingScreen";
+import { SEO } from "../components/SEO";
 
 const Home: NextPage = () => {
   const { data, isLoading, isError } = useUser();
@@ -24,6 +25,7 @@ const Home: NextPage = () => {
   if (data.user && data.success) {
     return (
       <>
+        <SEO title="Home" />
         <Container className={`md:mt-20`}>
           <Header data={data} />
           <LoggedInScreen data={data} />

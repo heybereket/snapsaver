@@ -20,7 +20,6 @@ export const paragraphs = [
     sentences: [
       "1. Snapsaver stores your data only on your Google Drive.",
       "2. When you sign in with Google, Snapsaver gets the minimal credentials it needs - your email address and access to <i><b>only the files Snapsaver creates</b></i> for the duration you are signed in, so that it can upload your memories.",
-      "3. We use industry-standard encryption for the data exchanged between you and Snapsaver's server (aka your memories_history.json).",
     ],
   },
   {
