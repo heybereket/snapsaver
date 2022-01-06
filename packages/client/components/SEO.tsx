@@ -33,10 +33,10 @@ export const SEO: React.FC<SEOProps> = ({
         <meta name="og:title" content={title} />
       )}
       <meta name="og:description" content="Backup your Snapchat Memories to Google Drive" />
-      <meta name="og:image" content="../assets/banner.png" />
+      <meta name="og:image" content="/assets/banner.png" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content="Backup your Snapchat Memories to Google Drive" />
-      <meta name="twitter:image" content="../assets/banner.png" />
+      <meta name="twitter:image" content="/assets/banner.png" />
       <meta name="theme-color" content="#FED8B1" />
     </Head>
   );
