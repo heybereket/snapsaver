@@ -31,6 +31,14 @@ export const authenticateUser = async (
       },
     });
 
+    if (!user) {
+      await prisma.user.create({
+        data: {
+          email: req.email as string,
+        },
+      });
+    }
+
     req.email = googleUserInfo.email;
     req.googleAccessToken = token;
     req.isBeta = (user && user?.betaUser) as boolean;
