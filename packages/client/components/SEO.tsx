@@ -49,7 +49,7 @@ export const SEO: React.FC<SEOProps> = ({
       />
       <meta name="twitter:image" content="/assets/banner.png" />
       <meta name="theme-color" content="#FED8B1" />
-      <link rel="shortcut icon" href="/assets/snapsaver-logo.png" />
+      <link rel="shortcut icon" href="/assets/favicon.png" />
       <meta name="og:image" content="/assets/banner.png" />
     </Head>
   );

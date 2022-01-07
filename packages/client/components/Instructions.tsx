@@ -3,12 +3,20 @@ import { VideoEmbed } from "./VideoEmbed";
 import Image from "next/image";
 
 export const Instructions = () => {
+  const discordServerURL = "https://discord.gg/2n6gCTZ7sB";
+
   return (
     <div className="flex items-center justify-center mt-10">
       <div className="bg-navbar rounded-lg w-[800px] px-10 py-8">
-        <h1 className="text-secondary text-4xl font-bold text-center mb-10">
+        <h1 className="text-secondary text-4xl font-bold text-center">
           How to use Snapsaver
         </h1>
+        <p className="text-center text-gray-400 mb-10">
+          Have feedback or encountering on some issues? Join the{" "}
+          <a href={discordServerURL} className="text-[#5865F2] hover:text-primary">
+            Discord
+          </a>
+        </p>
 
         <div className="mb-10">
           <VideoEmbed />
@@ -75,9 +83,10 @@ export const Instructions = () => {
             <span className="text-primary font-bold">Upload</span> your
             memories_history.json file, then{" "}
             <span className="text-primary font-bold">Start Download</span> ✅
-            Your memories will download to a folder called &quot;Snapsaver&quot;.
+            Your memories will download to a folder called
+            &quot;Snapsaver&quot;.
             <div className="mt-3">
-            ⚡ Refresh this page to track the progress, or hit{" "}
+              ⚡ Refresh this page to track the progress, or hit{" "}
               <span className="text-primary font-bold">go to folder</span> to
               start your trip down memory lane!
             </div>
