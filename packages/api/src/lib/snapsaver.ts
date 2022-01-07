@@ -3,7 +3,7 @@ import * as z from "zod";
 import memories from "./memories";
 import storageGoogleDrive from "./storage/google-drive";
 import util from "./util";
-import { Memory, Status, Type } from "@prisma/client";
+import { Status, Type } from "@prisma/client";
 import { URL } from "url";
 import * as log from "../lib/log";
 import pLimit from "p-limit";
@@ -24,7 +24,7 @@ interface ISnapSaver {
     googleAccessToken: string,
     callback: Function
   ) => void;
-  validateMemoriesJson: (json: any) => { success: boolean, err: string };
+  validateMemoriesJson: (json: any) => { success: boolean; err: string };
 }
 
 type MemoryRequest = {
@@ -95,7 +95,6 @@ class SnapSaver implements ISnapSaver {
         endDate,
         type
       );
-      console.log(filteredMemories.length);
 
       await prisma.user.update({
         where: { email },
@@ -115,6 +114,14 @@ class SnapSaver implements ISnapSaver {
               googleAccessToken
             );
           } else if (memoryRequest.status == Status.FAILED) {
+            // Temporarily storing error message for debugging
+            await prisma.user.update({
+              where: { email },
+              data: {
+                error: `${util.currentDateFormatted()} - Error extracting link from Snapchat.`,
+              },
+            });
+
             await this.Memories.incrementMemoryStatusOnUser(
               email,
               memoryRequest.status
@@ -135,7 +142,6 @@ class SnapSaver implements ISnapSaver {
   };
 
   public filterMemories = (memories, startDate, endDate, type) => {
-    console.log(startDate, endDate, type);
     return memories.filter((memory: any) => {
       const date = new Date(memory["Date"]).setUTCHours(0, 0, 0, 0);
       const isInRange =
@@ -177,12 +183,6 @@ class SnapSaver implements ISnapSaver {
       log.error(err);
       return { success: false, err: err };
     }
-  };
-
-  private processChunkMemories = async (email, chunk, index, total) => {
-    const processedMemories = await Promise.all(chunk);
-    await this.Memories.createMemories(processedMemories);
-    log.info(`[UPLOAD] processed ${index + 1}/${total} chunks - ${email}`);
   };
 
   /**
@@ -259,6 +259,13 @@ class SnapSaver implements ISnapSaver {
           resolve("done");
         } catch (err) {
           log.error(`Error while downloading ${fileName} for ${email}: ${err}`);
+          // Temporarily storing error message for debugging
+          await prisma.user.update({
+            where: { email },
+            data: {
+              error: `${util.currentDateFormatted()} - Error while downloading media link. ${err}`,
+            },
+          });
           await this.Memories.incrementMemoryStatusOnUser(email, "FAILED");
           reject(err);
         }

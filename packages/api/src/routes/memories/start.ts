@@ -15,14 +15,16 @@ const StorageGoogleDrive = new storageGoogleDrive();
 
 const memoriesJsonSchema = z.object({
   startDate: z
-    .string().optional()
-    .refine((date) => date ? util.isValidDate(date) : true, {
-      message: "startDate must be in yyyy-mm-dd format"
+    .string()
+    .optional()
+    .refine((date) => (date ? util.isValidDate(date) : true), {
+      message: "startDate must be in yyyy-mm-dd format",
     }),
   endDate: z
-    .string().optional()
-    .refine((date) => date ? util.isValidDate(date) : true, {
-      message: "endDate bust be in yyyy-mm-dd format"
+    .string()
+    .optional()
+    .refine((date) => (date ? util.isValidDate(date) : true), {
+      message: "endDate must be in yyyy-mm-dd format",
     }),
   type: z.enum(["ALL", "PHOTO", "VIDEO"]).optional(),
 });
@@ -36,7 +38,9 @@ export default (fastify: FastifyInstance, opts, done) => {
       const user = await prisma.user.findUnique({ where: { email } });
 
       if (user?.activeDownload) {
-        return res.status(202).send({ message: "Active download in progress" });
+        return res.status(202).send({
+          message: "Active download in progress.",
+        });
       }
 
       const options = { limits: { fileSize: 8 * MEGABYTE } };
@@ -53,9 +57,7 @@ export default (fastify: FastifyInstance, opts, done) => {
       try {
         memoriesJsonSchema.parse(optionalParams);
       } catch (err) {
-        return res
-          .status(400)
-          .send({ message: "Invalid request form data", err });
+        return res.status(400).send({ message: "Invalid form options.", err });
       }
 
       // Validate memories_history.json
@@ -63,9 +65,16 @@ export default (fastify: FastifyInstance, opts, done) => {
       const memoriesJson: JSON = util.bufferToJson(buffer);
       const { success, err } = Snapsaver.validateMemoriesJson(memoriesJson);
       if (!success) {
-        return res
-          .status(422)
-          .send({ message: "Invalid memories_history.json", err });
+        // Temporarily storing error message for debugging
+        const message = "Invalid memories_history.json";
+        await prisma.user.update({
+          where: { email },
+          data: {
+            error: `${util.currentDateFormatted()} - ${message}. ${err}`,
+          },
+        });
+
+        return res.status(422).send({ message, err });
       }
 
       // Upload memories_history.json to user's Google Drive
@@ -78,10 +87,18 @@ export default (fastify: FastifyInstance, opts, done) => {
           steam
         );
       } catch (err) {
-        return res.status(403).send({
-          message: "Failed to upload memories_history.json to user's drive",
-          err: err.message,
+        const message =
+          "Failed to upload memories_history.json to user's drive.";
+        const _err = err.message;
+
+        // Temporarily storing error message for debugging
+        await prisma.user.update({
+          where: { email },
+          data: {
+            error: `${util.currentDateFormatted()} - ${message}. ${_err}`,
+          },
         });
+        return res.status(403).send({ message, err: _err });
       }
 
       const job = await downloadMemoriesJob({

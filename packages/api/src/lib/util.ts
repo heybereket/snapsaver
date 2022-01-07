@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 const util = {
   bufferToJson: (buffer: Buffer | undefined): JSON =>
     JSON.parse(buffer?.toString() ?? ""),
@@ -19,7 +21,9 @@ const util = {
     var dNum = d.getTime();
     if(!dNum && dNum !== 0) return false; // NaN value, Invalid date
     return d.toISOString().slice(0,10) === dateString;
-  }
+  },
+
+  currentDateFormatted: () => dayjs().format("YYYY/MM/DD h:mma")
 };
 
 export default util;

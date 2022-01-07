@@ -2,8 +2,9 @@ import { google } from "googleapis";
 import * as log from "../log";
 import { API_URL } from "../constants";
 import memories from "../memories";
-import dayjs from "dayjs";
+import util from "../util";
 import { Status } from "@prisma/client";
+import { prisma } from "../connections/prisma";
 
 class StorageGoogleDrive {
   Memories: any;
@@ -12,7 +13,11 @@ class StorageGoogleDrive {
     this.Memories = new memories();
   }
 
-  public uploadMemoriesJson = async (accessToken: string, email: string, data: any) => {
+  public uploadMemoriesJson = async (
+    accessToken: string,
+    email: string,
+    data: any
+  ) => {
     try {
       const drive = this.getGoogleDrive(accessToken);
       const folderId = await this.getOrCreateSnapsaverFolderId(drive);
@@ -66,23 +71,22 @@ class StorageGoogleDrive {
   public getFileById = async (accessToken, fileId) => {
     const drive = this.getGoogleDrive(accessToken);
     var request = await drive.files.get({
-      'fileId': fileId,
-      'alt': 'media'
+      fileId: fileId,
+      alt: "media",
     });
     return request.data;
-  }
+  };
 
   public getFolderById = async (accessToken, folderId) => {
     const drive = this.getGoogleDrive(accessToken);
     var request = await drive.files.get({
-      'fileId': folderId,
+      fileId: folderId,
     });
     return request.data;
-  }
+  };
 
   private getOrCreateSnapsaverFolderId = async (drive: any) => {
-    const currentDateFormatted = dayjs().format("YYYY/MM/DD h:mma");
-    const folderName = `Snapsaver ${currentDateFormatted}`;
+    const folderName = `Snapsaver ${util.currentDateFormatted()}`;
     const existingFolders: any[] = await this.listFiles(drive);
     const snapsaverFolders = existingFolders.filter(
       (f) => f.name === folderName
@@ -171,7 +175,10 @@ class StorageGoogleDrive {
           log.success(`Created file ${name} - ${email}`);
 
           if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
-            await this.Memories.incrementMemoryStatusOnUser(email, Status.SUCCESS);
+            await this.Memories.incrementMemoryStatusOnUser(
+              email,
+              Status.SUCCESS
+            );
           }
 
           resolve(file.data.id);
@@ -183,7 +190,17 @@ class StorageGoogleDrive {
           );
 
           if (mimeType == "image/jpeg" || mimeType == "video/mp4") {
-            await this.Memories.incrementMemoryStatusOnUser(email, Status.FAILED);
+            // Temporarily storing error message for debugging
+            await prisma.user.update({
+              where: { email },
+              data: {
+                error: `${util.currentDateFormatted()} - Failed to save media to Google Drive. ${err.errors[0].message}`,
+              },
+            });
+            await this.Memories.incrementMemoryStatusOnUser(
+              email,
+              Status.FAILED
+            );
           }
 
           reject(err.errors[0].message);

@@ -53,13 +53,24 @@ export const LoggedInScreen = (props: { data: any }) => {
           "Content-Type": `multipart/form-data`,
         },
       })
-      .then((res) => window.location.reload())
+      .then((res) => {
+        console.log(res);
+        window.location.reload()
+      })
       .catch((error) => {
         const { message, err } = error.response.data;
         console.log(`${message}. ${err}`);
         if (error.response.status == 403) {
           setErrorMessage(
             "Your Google Drive is full! Try freeing up some space or logging in with a different account."
+          );
+        } else if (error.response.status == 400) {
+          setErrorMessage(
+            `Your custom options are invalid, make sure your dates are in the format YYYY-MM-DD.`
+          );
+        } else {
+          setErrorMessage(
+            `Hmm something went wrong. $${error?.response?.data?.messsage}. ${error?.response?.data?.err}`
           );
         }
       });
