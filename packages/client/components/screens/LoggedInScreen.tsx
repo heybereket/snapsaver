@@ -144,7 +144,7 @@ export const LoggedInScreen = (props: { data: any }) => {
             {props.data.user?.error?.includes("save media") ? (
               <div className="md:w-[410px] text-center mt-4 mb-1">
                 <span className="text-red-500 text-center">
-                  Failed to backup more memories, your Drive storage is full :/
+                  Failed to export more memories, your Drive storage is full :/
                   Please free up space (and empty your trash!) or use a new
                   account for Google&apos;s full free 15GB - then try again.
                 </span>

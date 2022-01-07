@@ -17,7 +17,7 @@ export const SEO: React.FC<SEOProps> = ({ title }) => {
       />
       <meta
         name="description"
-        content="Backup your Snapchat Memories to Google Drive"
+        content="Export all your Snapchat memories to Google Drive"
       />
       <meta
         name="keywords"
@@ -26,13 +26,13 @@ export const SEO: React.FC<SEOProps> = ({ title }) => {
       <meta name="og:title" content={properTitle} />
       <meta
         name="og:description"
-        content="Backup your Snapchat Memories to Google Drive"
+        content="Export all your Snapchat memories to Google Drive"
       />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={properTitle} />
       <meta
         name="twitter:description"
-        content="Backup your Snapchat Memories to Google Drive"
+        content="Export all your Snapchat memories to Google Drive"
       />
       <meta name="twitter:image" content="/assets/banner.png" />
       <meta name="theme-color" content="#FED8B1" />

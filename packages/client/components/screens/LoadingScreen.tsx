@@ -20,7 +20,7 @@ export const LoadingScreen = () => {
           Snapsaver
         </p>
         <span className="text-center md:text-lg text-secondary">
-          Backup your Snapchat memories
+          Export all your Snapchat memories
         </span>
       </div>
     </div>

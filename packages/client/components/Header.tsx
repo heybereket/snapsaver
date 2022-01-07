@@ -60,7 +60,7 @@ export const Header = (props: { data: any }) => {
               Snapsaver
             </p>
             <span className="text-left md:text-xl text-secondary">
-              Backup your Snapchat memories
+              Export all your Snapchat memories
             </span>
           </div>
         </div>

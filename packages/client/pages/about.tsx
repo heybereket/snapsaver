@@ -91,7 +91,7 @@ const About = () => {
                       Can Snapsaver recover Snapchat memories from a deleted
                       account?
                     </p>
-                    Unfortunately, Snapsaver can only backup data that Snapchat
+                    Unfortunately, Snapsaver can only export data that Snapchat
                     still has. According to{" "}
                     <Link
                       url="https://support.snapchat.com/en-US/a/delete-my-account1"
