@@ -3,21 +3,9 @@ import Head from "next/head";
 
 interface SEOProps {
   title: any;
-  description?: string;
-  metaTitle?: string;
-  metaDesc?: string;
-  metaImg?: string;
-  keywords?: string;
 }
 
-export const SEO: React.FC<SEOProps> = ({
-  title,
-  description,
-  metaDesc,
-  metaImg,
-  metaTitle,
-  keywords,
-}) => {
+export const SEO: React.FC<SEOProps> = ({ title }) => {
   const properTitle = title === "Snapsaver" ? title : `${title} - Snapsaver`;
 
   return (
@@ -31,12 +19,11 @@ export const SEO: React.FC<SEOProps> = ({
         name="description"
         content="Backup your Snapchat Memories to Google Drive"
       />
-      <meta name="keywords" content={keywords} />
-      {metaTitle ? (
-        <meta name="og:title" content={metaTitle} />
-      ) : (
-        <meta name="og:title" content={properTitle} />
-      )}
+      <meta
+        name="keywords"
+        content="snapsaver,memories,backup,backup memories,download,memories to google drive,export,snapchat memories"
+      />
+      <meta name="og:title" content={properTitle} />
       <meta
         name="og:description"
         content="Backup your Snapchat Memories to Google Drive"
