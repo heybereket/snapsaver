@@ -61,11 +61,11 @@ export default (fastify: FastifyInstance, opts, done) => {
       // Validate memories_history.json
       const buffer = await data.toBuffer();
       const memoriesJson: JSON = util.bufferToJson(buffer);
-      const isValid = Snapsaver.validateMemoriesJson(memoriesJson);
-      if (!isValid) {
+      const { success, err } = Snapsaver.validateMemoriesJson(memoriesJson);
+      if (!success) {
         return res
           .status(422)
-          .send({ message: "Invalid memories_history.json" });
+          .send({ message: "Invalid memories_history.json", err });
       }
 
       // Upload memories_history.json to user's Google Drive

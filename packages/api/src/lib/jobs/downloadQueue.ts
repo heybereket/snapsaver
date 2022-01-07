@@ -6,7 +6,6 @@ import ss from "../snapsaver";
 import memories from "../memories";
 
 const SnapSaver = new ss();
-const Memories = new memories();
 const JOB_NAME = "DOWNLOAD";
 export const downloadQueue = new Queue(JOB_NAME.toLowerCase(), jobQueueOptions);
 
