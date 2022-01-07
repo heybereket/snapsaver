@@ -19,7 +19,7 @@ export const paragraphs = [
     title: "TL;DR",
     sentences: [
       "1. Snapsaver stores your data directly into your own Google Drive, so you have control over it - as it should be.",
-      "2. When you sign in with Google, Snapsaver gets the minimal credentials it needs - your email address and access to <i><b>only the files Snapsaver creates</b></i> for the duration you are signed in, so that it can upload your memories.",
+      "2. When you sign in with Google, Snapsaver gets the minimal credentials it needs - your email address and access to <i><b>only</b></i> the files Snapsaver creates for the duration you are signed in, so that it can upload your memories.",
     ],
   },
   {
@@ -27,7 +27,7 @@ export const paragraphs = [
     sentences: [
       "When you sign in, Snapsaver asks for the minimum credentials needed to get the job done:",
       "1. Your email address",
-      "2. Access to <b><i>only the files that Snapsaver creates</i></b> in your Google Drive",
+      "2. Access to only the files that Snapsaver creates in your Google Drive",
       "After you've signed in, Google provides an access token. When Snapsaver makes requests to Google to save a file to your Drive, it needs to include this access token. If you sign out, this token becomes invalid and Snapsaver cannot do anything with your Google account.",
       "🔑 Your <b><i>files are as as secure as your Google account</i></b>, so ensure you <b><i>use one that is strongly protected</i></b> and is <b><i>only accessible by you and people you trust</i></b> to see your memories.",
     ],
@@ -42,7 +42,7 @@ export const paragraphs = [
     title: "Where do we store your data?",
     sentences: [
       "Snapsaver stores your data only on your own Google Drive.",
-      "When you upload your memories_history.json, Snapsaver creates a folder on your Google Drive called something like “Snapsaver - 2022/01/05 5:45pm” and saves your JSON file into it. If that works (i.e. you have enough storage), your download request is queued!",
+      "When you upload your memories_history.json, Snapsaver creates a folder on your Google Drive called “Snapsaver” with the current timestamp and saves your JSON file into it. If that works (i.e. you have enough storage), your download request is queued.",
       "Once your download is being processed, Snapsaver reads directly from that file to process each link and save your media into that same folder on your Google Drive.",
       "Outside of your Google Drive, <b><i>Snapsaver doesn't store any information about the contents of your memories_history.json</i></b>.",
     ],
