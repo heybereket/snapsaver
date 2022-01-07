@@ -8,14 +8,14 @@ export const Instructions = () => {
   return (
     <div className="flex items-center justify-center mt-10">
       <div className="bg-navbar rounded-lg w-[800px] px-10 py-8">
-        <h1 className="text-secondary text-4xl font-bold text-center">
+        <h1 className="text-secondary text-4xl font-bold text-center mb-2">
           How to use Snapsaver
         </h1>
         <p className="text-center text-gray-400 mb-10">
-          Have feedback or encountering on some issues? Join the{" "}
+          Have feedback or encountering issues? Join the{" "}
           <a href={discordServerURL} className="text-[#5865F2] hover:text-primary">
             Discord
-          </a>
+          </a>.
         </p>
 
         <div className="mb-10">
