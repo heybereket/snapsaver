@@ -38,6 +38,8 @@ model Memory {
 enum Type {
   VIDEO
   PHOTO
+  Video
+  Image
 }
 
 enum Status {

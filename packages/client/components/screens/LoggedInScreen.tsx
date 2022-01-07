@@ -54,12 +54,11 @@ export const LoggedInScreen = (props: { data: any }) => {
         },
       })
       .then((res) => {
-        console.log(res);
         window.location.reload()
       })
       .catch((error) => {
-        const { message, err } = error.response.data;
-        console.log(`${message}. ${err}`);
+        console.log(`Error starting download:`, error?.response?.data);
+        const { message, err } = error?.response?.data;
         if (error.response.status == 403) {
           setErrorMessage(
             "Your Google Drive is full! Try freeing up some space or logging in with a different account."
@@ -68,9 +67,13 @@ export const LoggedInScreen = (props: { data: any }) => {
           setErrorMessage(
             `Your custom options are invalid, make sure your dates are in the format YYYY-MM-DD.`
           );
+        } else if (error.response.status == 422) {
+          setErrorMessage(
+            `Hmm your memories_history.json looks invalid, maybe Snapchat updated their file format. Open the file and check whether the "Media Type" fields are either "photo", "image", or "video" (case insensitive).}.`
+          );
         } else {
           setErrorMessage(
-            `Hmm something went wrong. $${error?.response?.data?.messsage}. ${error?.response?.data?.err}`
+            `Hmm something went wrong. ${message as string}}`
           );
         }
       });

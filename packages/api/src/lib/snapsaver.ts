@@ -167,7 +167,9 @@ class SnapSaver implements ISnapSaver {
         "Saved Media": z.array(
           z.object({
             Date: z.string(),
-            "Media Type": z.enum(["PHOTO", "VIDEO"]),
+            "Media Type": z.string().refine((t) => ["photo", "image", "video"].includes(t.toLowerCase()), {
+              message: '"Media "Type" must be one of ["photo, "image", "video"] (case insensitive).'
+            }),
             "Download Link": z
               .string()
               .refine((link) => new URL(link).hostname == "app.snapchat.com", {
@@ -276,9 +278,12 @@ class SnapSaver implements ISnapSaver {
   /**
    * Returns file name with appropriate extension
    */
-  private getMediaFileName = (date: Date, type: Type): string => {
+  private getMediaFileName = (date: Date, type: string): string => {
     const formattedDate = dayjs(date).format("YYYY/MM/DD HH-mm-ss");
-    return `${formattedDate}${type == "PHOTO" ? ".jpg" : ".mp4"}`;
+    const fileType = type.toLowerCase();
+    const fileName = `${formattedDate}${(fileType == "photo" || fileType == "image") ? ".jpg" : ".mp4"}`;
+    console.log(fileName);
+    return fileName;
   };
 }
 
