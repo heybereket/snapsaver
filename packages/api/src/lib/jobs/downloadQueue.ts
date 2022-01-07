@@ -3,7 +3,6 @@ import * as log from "../log";
 import { jobQueueOptions } from "./config";
 import { prisma } from "../connections/prisma";
 import ss from "../snapsaver";
-import memories from "../memories";
 
 const SnapSaver = new ss();
 const JOB_NAME = "DOWNLOAD";
