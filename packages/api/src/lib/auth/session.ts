@@ -1,7 +1,8 @@
 import axios from "axios";
-import { CLIENT_URL, COOKIE_NAME, IS_PRODUCTION } from "../constants";
+import { COOKIE_NAME } from "../constants";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "../connections/prisma";
+import * as log from "../log";
 
 export const authenticateUser = async (
   req: FastifyRequest,
@@ -31,12 +32,19 @@ export const authenticateUser = async (
       },
     });
 
+    if (!user) {
+      await prisma.user.create({
+        data: { email: googleUserInfo.email },
+      });
+    }
+
     req.email = googleUserInfo.email;
     req.googleAccessToken = token;
     req.isBeta = (user && user?.betaUser) as boolean;
 
     return googleUserInfo;
   } catch (err) {
+    log.error("Failed to authenticate user", err);
     req.email = undefined;
     req.googleAccessToken = undefined;
 

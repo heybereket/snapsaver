@@ -13,21 +13,13 @@ export const paragraphs = [
     sentences: [
       "This privacy policy sets out how Snapsaver uses and protects any information that you give Snapsaver when you use this website.",
       "Your memories are extremely sensitive data. Snapsaver was designed with this as the top priority.",
-      "Snapsaver stores your data directly into your own Google Drive, so you have control over it - as it should be.",
     ],
   },
   {
     title: "TL;DR",
     sentences: [
-      "1. Snapsaver stores your data only on your Google Drive.",
+      "1. Snapsaver stores your data directly into your own Google Drive, so you have control over it - as it should be.",
       "2. When you sign in with Google, Snapsaver gets the minimal credentials it needs - your email address and access to <i><b>only the files Snapsaver creates</b></i> for the duration you are signed in, so that it can upload your memories.",
-    ],
-  },
-  {
-    title: "Does Snapsaver make money?",
-    sentences: [
-      "No. We just want to make it easier for you to get your memories off the app.",
-      "But we do accept tips 😊",
     ],
   },
   {
@@ -53,6 +45,12 @@ export const paragraphs = [
       "When you upload your memories_history.json, Snapsaver creates a folder on your Google Drive called something like “Snapsaver - 2022/01/05 5:45pm” and saves your JSON file into it. If that works (i.e. you have enough storage), your download request is queued!",
       "Once your download is being processed, Snapsaver reads directly from that file to process each link and save your media into that same folder on your Google Drive.",
       "Outside of your Google Drive, <b><i>Snapsaver doesn't store any information about the contents of your memories_history.json</i></b>.",
+    ],
+  },
+  {
+    title: "Does Snapsaver make money?",
+    sentences: [
+      "No, this website is not monetized. We just want to make it easier for you to get your memories off the app.",
     ],
   },
 ];

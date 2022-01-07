@@ -7,6 +7,7 @@ import { Instructions } from "../components/Instructions";
 import { useUser } from "../lib/fetcher";
 import { LoadingScreen } from "../components/screens/LoadingScreen";
 import { SEO } from "../components/SEO";
+import { EnterBeta } from "../components/EnterBeta";
 
 const Home: NextPage = () => {
   const { data, isLoading, isError } = useUser();
@@ -25,13 +26,17 @@ const Home: NextPage = () => {
       </>
     );
 
-  if (data.user && data.success) {
+  if (data.user) {
     return (
       <>
         <SEO title="Home" />
         <Container className={`md:mt-20`}>
           <Header data={data} />
-          <LoggedInScreen data={data} />
+          {!data?.user?.betaUser ? (
+            <EnterBeta data={data} />
+          ) : (
+            <LoggedInScreen data={data} />
+          )}
           <Instructions />
           <Footer />
         </Container>

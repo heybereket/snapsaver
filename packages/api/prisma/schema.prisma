@@ -17,6 +17,7 @@ model User {
   memoriesSuccess   Int?
   memoriesFailed    Int?
   memoriesTotal     Int?
+  error             String?
   jobId             Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -37,6 +38,8 @@ model Memory {
 enum Type {
   VIDEO
   PHOTO
+  Video
+  Image
 }
 
 enum Status {

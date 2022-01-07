@@ -1,24 +1,9 @@
-import { API_URL } from "../lib/constants";
 import { Google } from "./icons/Google";
 import Image from "next/image";
-import axios from "axios";
 import Link from "next/link";
+import { API_URL } from "../lib/constants";
 
 export const Header = (props: { data: any }) => {
-  const notSignedUpBetaUser =
-    props.data.message && props.data.message.includes("Sign up");
-  const notApprovedBetaUser =
-    props.data.message && props.data.message.includes("beta");
-  console.log(props.data, notSignedUpBetaUser, notApprovedBetaUser);
-
-  const joinBetaHandler = async () => {
-    await axios.get(`${API_URL}/@me/beta`, {
-      withCredentials: true,
-    });
-
-    window.location.reload();
-  };
-
   return (
     <>
       <div className="flex absolute right-4 md:right-10 top-10 h-16 pb-5">
@@ -80,28 +65,6 @@ export const Header = (props: { data: any }) => {
           </div>
         </div>
       </div>
-
-      {props.data.user && (notApprovedBetaUser || notSignedUpBetaUser) && (
-        <>
-          <div className="flex items-center justify-center">
-            <span>
-              {notSignedUpBetaUser
-                ? `You aren't a beta user...yet. Sign up for the waitlist.`
-                : `You're not approved for beta yet! Soon...`}
-            </span>
-          </div>
-          <div className="flex items-center justify-center mt-5">
-            <button
-              onClick={notSignedUpBetaUser ? joinBetaHandler : undefined}
-              className={`group bg-navbar px-5 py-3 flex items-center text-sm w-auto rounded-lg cursor-pointer transition ease-out hover:bg-primary hover:text-black text-center text-secondary ${
-                !notSignedUpBetaUser && "cursor-not-allowed opacity-50"
-              }`}
-            >
-              {notSignedUpBetaUser ? "Join waitlist" : "Joined beta"}
-            </button>
-          </div>
-        </>
-      )}
     </>
   );
 };
