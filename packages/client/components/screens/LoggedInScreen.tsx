@@ -3,6 +3,7 @@ import Image from "next/image";
 import axios from "axios";
 import { useState } from "react";
 import { API_URL } from "../../lib/constants";
+import { userInfo } from "os";
 
 const Codeblock = (props: any) => {
   return <code className="font-monospace text-primary">{props.content}</code>;
@@ -54,7 +55,7 @@ export const LoggedInScreen = (props: { data: any }) => {
         },
       })
       .then((res) => {
-        window.location.reload()
+        window.location.reload();
       })
       .catch((error) => {
         console.log(`Error starting download:`, error?.response?.data);
@@ -72,9 +73,7 @@ export const LoggedInScreen = (props: { data: any }) => {
             `Hmm your memories_history.json looks invalid, maybe Snapchat updated their file format. Open the file and check whether the "Media Type" fields are either "photo", "image", or "video" (case insensitive).}.`
           );
         } else {
-          setErrorMessage(
-            `Hmm something went wrong. ${message as string}}`
-          );
+          setErrorMessage(`Hmm something went wrong. ${message as string}}`);
         }
       });
   };
@@ -128,7 +127,7 @@ export const LoggedInScreen = (props: { data: any }) => {
           <div></div>
         )}
         {memoriesStatus.total ? (
-          <div className="flex items-center justify-center mt-8 mb-5">
+          <div className="flex flex-col items-center justify-center mt-8 mb-5">
             <div className="text-xl text-center text-gray-400">
               {memoriesStatus.activeDownload ? "Downloading" : "Downloaded"}{" "}
               {memoriesStatus.total} memories 🤩{" "}
@@ -142,6 +141,17 @@ export const LoggedInScreen = (props: { data: any }) => {
                 {memoriesStatus.failed} failed
               </span>
             </div>
+            {props.data.user?.error?.includes("save media") ? (
+              <div className="md:w-[410px] text-center mt-4 mb-1">
+                <span className="text-red-500 text-center">
+                  Failed to backup more memories, your Drive storage is full :/
+                  Please free up space (and empty your trash!) or use a new
+                  account for Google&apos;s full free 15GB - then try again.
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <div></div>

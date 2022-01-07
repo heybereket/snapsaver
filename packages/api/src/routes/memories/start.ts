@@ -118,6 +118,7 @@ export default (fastify: FastifyInstance, opts, done) => {
           memoriesFailed: 0,
           memoriesTotal: 0,
           jobId: Number(job.id),
+          error: ""
         },
       });
 
