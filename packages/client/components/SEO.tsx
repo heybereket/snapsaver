@@ -21,7 +21,7 @@ export const SEO: React.FC<SEOProps> = ({ title }) => {
       />
       <meta
         name="keywords"
-        content="snapsaver,memories,backup,backup memories,download,memories to google drive,export,snapchat memories"
+        content="snapsaver,memories,backup,backup memories,download,memories to google drive,snapchat,save,export,snapchat memories"
       />
       <meta name="og:title" content={properTitle} />
       <meta
