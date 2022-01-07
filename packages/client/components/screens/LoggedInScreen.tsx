@@ -173,7 +173,7 @@ export const LoggedInScreen = (props: { data: any }) => {
         <div></div>
       )}
 
-      <div className="flex items-center justify-center">
+      {/* <div className="flex items-center justify-center">
         <button
           onClick={() => {
             setMoreOptions(!moreOptions);
@@ -182,9 +182,9 @@ export const LoggedInScreen = (props: { data: any }) => {
         >
           + More Options
         </button>
-      </div>
+      </div> */}
 
-      {moreOptions && (
+      {/* {moreOptions && (
         <div className="flex items-center justify-center mt-5">
           <div className="bg-navbar rounded-lg w-[410px] px-10 py-8 mb-10">
             <h3 className="text-secondary text-2xl mt-2 font-bold">
@@ -240,7 +240,7 @@ export const LoggedInScreen = (props: { data: any }) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 };
